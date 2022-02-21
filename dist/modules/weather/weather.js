@@ -106,7 +106,8 @@ class Weather {
             .humidityAvg;
         const nowWind = tomorrowioRespData.data.timelines[0].intervals[0].values
             .windSpeedAvg;
-        const nowCode = tomorrowioRespData.data.timelines[0].intervals[0].values.weatherCode;
+        const nowCode = tomorrowioRespData.data.timelines[0].intervals[0].values
+            .weatherCode;
         const nowCodeEmote = this.findEmote(interaction, nowCode, isNight);
         const nowCodeDesc = (0, weather_codes_1.default)(nowCode);
         //const minTemp = tomorrowioRespData.data.timelines[0].intervals[0].values.temperatureApparentMin;
@@ -139,9 +140,8 @@ class Weather {
             hour12: false,
         });
         //create embed
-        const embed = new discord_js_1.MessageEmbed()
-            .setFields([
-            { name: `Forecast`, value: forecast, inline: true }
+        const embed = new discord_js_1.MessageEmbed().setFields([
+            { name: `Forecast`, value: forecast, inline: true },
         ]);
         if (nowField) {
             embed.setDescription(`${nowField}`);

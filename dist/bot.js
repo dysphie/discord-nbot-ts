@@ -20,7 +20,7 @@ const register_commands_1 = __importDefault(require("./register_commands"));
 // check that nbot_token is set
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
-    throw new Error('NBOT_DISCORD_TOKEN is not set');
+    throw new Error("NBOT_DISCORD_TOKEN is not set");
 }
 (0, mongodb_1.initMongoDatabase)();
 const client = new discord_js_1.Client({
@@ -32,47 +32,47 @@ const client = new discord_js_1.Client({
         discord_js_1.Intents.FLAGS.GUILD_WEBHOOKS,
         discord_js_1.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
     ],
-    partials: ['MESSAGE', 'REACTION'],
+    partials: ["MESSAGE", "REACTION"],
     allowedMentions: {},
 });
-client.once('ready', async () => {
+client.once("ready", async () => {
     if (client.user == null) {
         throw new Error("Client user is null");
     }
     console.log(`Connected to Discord as ${client.user.tag}`);
-    weather_1.default.setAssetGuild('759525750201909319');
-    emoter_1.default.setEmoteGuild('937552002991403132');
-    starboard_1.default.setStarboardChannel('617539911528218634');
+    weather_1.default.setAssetGuild("759525750201909319");
+    emoter_1.default.setEmoteGuild("937552002991403132");
+    starboard_1.default.setStarboardChannel("617539911528218634");
     permathreads_1.default.recoverFromSleep(client);
     await (0, register_commands_1.default)(client.user.id, token);
 });
-client.on('interactionCreate', interaction => {
+client.on("interactionCreate", (interaction) => {
     if (!interaction.isCommand()) {
         return;
     }
-    if (interaction.commandName === 'weather') {
+    if (interaction.commandName === "weather") {
         weather_1.default.handleInteraction(interaction);
     }
-    else if (interaction.commandName === 'namecolor') {
+    else if (interaction.commandName === "namecolor") {
         namecolor_1.default.handleInteraction(interaction);
     }
-    else if (interaction.commandName === 'inspire') {
+    else if (interaction.commandName === "inspire") {
         inspoquote_1.default.handleInteraction(interaction);
     }
-    else if (interaction.commandName == 'animal') {
+    else if (interaction.commandName == "animal") {
         animals_1.default.handleInteraction(interaction);
     }
-    else if (interaction.commandName == 'emoter') {
+    else if (interaction.commandName == "emoter") {
         emoter_1.default.handleInteraction(interaction);
     }
 });
-client.on('messageReactionAdd', async (reaction) => {
+client.on("messageReactionAdd", async (reaction) => {
     starboard_1.default.handleReactionUpdate(reaction);
 });
-client.on('messageReactionRemove', async (reaction) => {
+client.on("messageReactionRemove", async (reaction) => {
     starboard_1.default.handleReactionUpdate(reaction);
 });
-client.on('messageCreate', async (message) => {
+client.on("messageCreate", async (message) => {
     if (message.author.bot) {
         patchbot_adblock_1.default.handleMessage(message);
         return;
@@ -82,10 +82,10 @@ client.on('messageCreate', async (message) => {
         yeller_1.default.handleMessage(message);
     }
 });
-client.on('webhookUpdate', async (channel) => {
+client.on("webhookUpdate", async (channel) => {
     webhook_mgr_1.default.handleWebhookUpdate(channel);
 });
-client.on('threadUpdate', async (oldThread, newThread) => {
+client.on("threadUpdate", async (oldThread, newThread) => {
     permathreads_1.default.handleThreadUpdate(newThread);
 });
 client.login(token);

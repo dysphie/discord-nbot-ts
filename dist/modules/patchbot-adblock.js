@@ -7,13 +7,15 @@ class PatchBotAdBlock {
         console.log("PatchBotAdBlock module loaded");
     }
     async handleMessage(message) {
-        if (!message.author.bot || message.author.username !== "PatchBot" ||
+        if (!message.author.bot ||
+            message.author.username !== "PatchBot" ||
             message.embeds.length === 0) {
             return;
         }
         const repostEmbeds = [];
         message.embeds.forEach((embed) => {
-            if (!embed.author || embed.author.name.indexOf("This update is brought to you by") === -1) {
+            if (!embed.author ||
+                embed.author.name.indexOf("This update is brought to you by") === -1) {
                 repostEmbeds.push(embed);
             }
         });

@@ -10,9 +10,9 @@ class InspiroBot {
         console.log("InspiroBot module loaded");
     }
     async handleInteraction(interaction) {
-        const url = 'https://inspirobot.me/api?generate=true';
+        const url = "https://inspirobot.me/api?generate=true";
         const quoteUrl = await axios_1.default.get(url);
-        const att = new discord_js_1.MessageAttachment(quoteUrl.data, 'quote.jpg');
+        const att = new discord_js_1.MessageAttachment(quoteUrl.data, "quote.jpg");
         interaction.reply({ files: [att] });
     }
 }

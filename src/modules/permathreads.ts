@@ -6,18 +6,15 @@ import {
 } from "discord.js";
 import config from "../config";
 
-
 class Permathreader {
-  
-  isPermathread(thread: ThreadChannel) {
-    return config.permathreads.includes(thread.id);
-  }
+	isPermathread(thread: ThreadChannel) {
+		return config.permathreads.includes(thread.id);
+	}
 
 	async recoverFromSleep(client: Client) {
-
-    console.log(`Recovering permathreads...`);
+		console.log(`Recovering permathreads...`);
 		if (client == null || config.permathreads.length <= 0) {
-      console.log("Nothing to recover is there");
+			console.log("Nothing to recover is there");
 			return;
 		}
 
@@ -33,7 +30,7 @@ class Permathreader {
 				for (const [, thread] of fetched.threads) {
 					if (thread.archived && this.isPermathread(thread)) {
 						console.log(`Recovered permathread ${thread.name}`);
-            await thread.setArchived(false);
+						await thread.setArchived(false);
 					}
 				}
 			}
@@ -41,10 +38,10 @@ class Permathreader {
 	}
 
 	async handleThreadUpdate(newThread: ThreadChannel) {
-		console.log('Thread update');
+		console.log("Thread update");
 		if (newThread.archived && this.isPermathread(newThread)) {
 			console.log(`Preventing ${newThread.name} from archiving`);
-      await newThread.setArchived(false);
+			await newThread.setArchived(false);
 		}
 	}
 

@@ -1,4 +1,4 @@
-import {matchSorter} from 'match-sorter'
+import { matchSorter } from "match-sorter";
 import {
 	Message,
 	Guild,
@@ -91,14 +91,20 @@ class Emoter {
 				const name = doc._id.toString();
 
 				try {
-					const emote = await this.tempEmoteFromURL(url,name,emoterGuild);
+					const emote = await this.tempEmoteFromURL(
+						url,
+						name,
+						emoterGuild
+					);
 					message.content = message.content.replace(
 						`$${name}`,
 						`${emote.toString()}`
 					);
 					replaced = true;
 				} catch (err) {
-					console.error(`Error uploading emote ${name} from ${url}: ${err}`);
+					console.error(
+						`Error uploading emote ${name} from ${url}: ${err}`
+					);
 				}
 			}
 		}
@@ -111,8 +117,11 @@ class Emoter {
 		return replaced;
 	}
 
-	async tempEmoteFromURL(url: string, name: string, guild: Guild): Promise<GuildEmoji> {
-		
+	async tempEmoteFromURL(
+		url: string,
+		name: string,
+		guild: Guild
+	): Promise<GuildEmoji> {
 		// Get the oldest emoji in cache, by oldest 'createdTimestamp'
 		const cacheSortedByOldest = guild.emojis.cache.sort((a, b) => {
 			return a.createdTimestamp - b.createdTimestamp;
@@ -135,7 +144,6 @@ class Emoter {
 	}
 
 	async handleRandomEmote(interaction: CommandInteraction): Promise<void> {
-		
 		const db = getMongoDatabase();
 		if (db == null) {
 			return;
@@ -146,7 +154,8 @@ class Emoter {
 			return;
 		}
 
-		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
+		const emoterGuild =
+			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild == null) {
 			interaction.reply("This command is unavailable");
 			return;
@@ -160,11 +169,7 @@ class Emoter {
 		if (doc) {
 			const url = doc.url;
 			const name = doc._id.toString();
-			const emote = await this.tempEmoteFromURL(
-				url,
-				name,
-				emoterGuild
-			);
+			const emote = await this.tempEmoteFromURL(url, name, emoterGuild);
 			if (emote) {
 				interaction.reply(`${emote.toString()}`);
 			}
@@ -172,7 +177,6 @@ class Emoter {
 	}
 
 	async handleFindEmote(interaction: CommandInteraction) {
-
 		const keyword = interaction.options.getString("keyword");
 		if (keyword === null) {
 			interaction.reply("Please specify a keyword.");
@@ -190,10 +194,12 @@ class Emoter {
 
 		const emotes = db.collection("emoter.emotes");
 		// find all emotes that match the keyword with a limit of 10
-		let emoteList = await emotes.find({ _id: {$regex: `.*${safeKeyword}*.`, $options:"i"} }).toArray();
-		emoteList = matchSorter(emoteList, keyword, { keys: ['_id']})
+		let emoteList = await emotes
+			.find({ _id: { $regex: `.*${safeKeyword}*.`, $options: "i" } })
+			.toArray();
+		emoteList = matchSorter(emoteList, keyword, { keys: ["_id"] });
 
-		let responseBody = 'Top matches: ';
+		let responseBody = "Top matches: ";
 		emoteList.forEach((emote) => {
 			const newLine = `[${emote._id}](<${emote.url}>) `;
 			// check if adding newLine to responseBody would go over 2000 characters
@@ -210,7 +216,6 @@ class Emoter {
 	}
 
 	async handleAddEmote(interaction: CommandInteraction) {
-
 		const url = interaction.options.getString("url");
 		if (url === null) {
 			interaction.reply("Please specify a url.");
@@ -241,7 +246,8 @@ class Emoter {
 			return;
 		}
 
-		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
+		const emoterGuild =
+			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild == null) {
 			interaction.reply("This command is unavailable");
 			return;
@@ -251,7 +257,9 @@ class Emoter {
 		try {
 			uploadedEmote = await this.tempEmoteFromURL(url, name, emoterGuild);
 		} catch (e) {
-			interaction.reply(`This emote is not compatible with discord. ${e}`);
+			interaction.reply(
+				`This emote is not compatible with discord. ${e}`
+			);
 			return;
 		}
 
@@ -262,15 +270,17 @@ class Emoter {
 				src: Long.fromString(interaction.member.user.id),
 			});
 
-			interaction.reply(`Added emote \`${name}\` ${uploadedEmote.toString()}`);
+			interaction.reply(
+				`Added emote \`${name}\` ${uploadedEmote.toString()}`
+			);
 		} else {
 			interaction.reply("Failed to add emote.");
 		}
 	}
 
 	async handleTestEmote(interaction: CommandInteraction) {
-
-		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
+		const emoterGuild =
+			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild == null) {
 			interaction.reply("This command is unavailable");
 			return;
@@ -281,11 +291,9 @@ class Emoter {
 		// find one in the database
 		const db = getMongoDatabase();
 		if (db == null) {
-			interaction.reply('Database unavailable');
-		}
-		else {
-
-			const emotes = db.collection('emoter.emotes');
+			interaction.reply("Database unavailable");
+		} else {
+			const emotes = db.collection("emoter.emotes");
 			const cursor = emotes.find({ _id: keyword });
 			const doc = await cursor.next();
 			if (doc) {
@@ -307,26 +315,26 @@ class Emoter {
 	}
 
 	async handleInteraction(interaction: CommandInteraction) {
-
 		const subCommand = interaction.options.getSubcommand();
 
 		// console.log('Got interaction to handle with subcommand ' + interaction.options.getSubcommand());
 		if (subCommand === "random") {
 			await this.handleRandomEmote(interaction);
-		}
-		else if (subCommand === "edit") {
-			await interaction.reply({content: 'Not implemented yet', ephemeral: true});
-		}
-		else if (subCommand === "add") {
+		} else if (subCommand === "edit") {
+			await interaction.reply({
+				content: "Not implemented yet",
+				ephemeral: true,
+			});
+		} else if (subCommand === "add") {
 			await this.handleAddEmote(interaction);
-		}
-		else if (subCommand === "remove") {
-			await interaction.reply({content: 'Not implemented yet', ephemeral: true});
-		}
-		else if (subCommand === "test") {
+		} else if (subCommand === "remove") {
+			await interaction.reply({
+				content: "Not implemented yet",
+				ephemeral: true,
+			});
+		} else if (subCommand === "test") {
 			await this.handleTestEmote(interaction);
-		}
-		else if (subCommand === "find") {
+		} else if (subCommand === "find") {
 			await this.handleFindEmote(interaction);
 		}
 	}

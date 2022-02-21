@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.INVISIBLE_CHAR = exports.getGeodataForLocation = exports.postAsUser = void 0;
 const axios_1 = __importDefault(require("axios"));
 const webhook_mgr_1 = __importDefault(require("./utils/webhook_mgr"));
-const INVISIBLE_CHAR = '\u17B5';
+const INVISIBLE_CHAR = "\u17B5";
 exports.INVISIBLE_CHAR = INVISIBLE_CHAR;
 async function postAsUser(channel, member, message) {
     const userNamePadded = member.displayName.padEnd(member.displayName.length + 1, INVISIBLE_CHAR);
@@ -39,14 +39,14 @@ async function getGeodataForLocation(location) {
         return null;
     }
     // https://opencagedata.com/api#request
-    const openCageResp = await axios_1.default.get('https://api.opencagedata.com/geocode/v1/json', {
+    const openCageResp = await axios_1.default.get("https://api.opencagedata.com/geocode/v1/json", {
         params: {
             key: process.env.NBOT_OPENCAGE_API_KEY,
             q: location,
             abbrv: 1,
             limit: 1,
-            no_record: 1 // :D
-        }
+            no_record: 1, // :D
+        },
     });
     if (openCageResp.status !== 200) {
         return null;

@@ -139,14 +139,18 @@ class Weather {
 		const nowWind =
 			tomorrowioRespData.data.timelines[0].intervals[0].values
 				.windSpeedAvg;
-		const nowCode = tomorrowioRespData.data.timelines[0].intervals[0].values.weatherCode;
-    
-        const nowCodeEmote = this.findEmote(interaction, nowCode, isNight);
+		const nowCode =
+			tomorrowioRespData.data.timelines[0].intervals[0].values
+				.weatherCode;
+
+		const nowCodeEmote = this.findEmote(interaction, nowCode, isNight);
 		const nowCodeDesc = getWeatherCodeDescription(nowCode);
-        
+
 		//const minTemp = tomorrowioRespData.data.timelines[0].intervals[0].values.temperatureApparentMin;
 		//const maxTemp = tomorrowioRespData.data.timelines[0].intervals[0].values.temperatureApparentMax;
-		const nowField = `${nowCodeEmote?.toString()} ${this.formatTemp(nowTemp)} · ${this.formatHumidity(nowHumidity)} · ${this.formatWind(nowWind)}`;
+		const nowField = `${nowCodeEmote?.toString()} ${this.formatTemp(
+			nowTemp
+		)} · ${this.formatHumidity(nowHumidity)} · ${this.formatWind(nowWind)}`;
 		//const nowField2 = `🔺 ${this.formatTemp(maxTemp)} 🔻 ${this.formatTemp(minTemp)}`;
 		const nowTime =
 			tomorrowioRespData["data"]["timelines"][0]["intervals"][0][
@@ -194,10 +198,9 @@ class Weather {
 		});
 
 		//create embed
-		const embed = new MessageEmbed()
-        .setFields([
-            { name: `Forecast`, value: forecast, inline: true }
-        ])
+		const embed = new MessageEmbed().setFields([
+			{ name: `Forecast`, value: forecast, inline: true },
+		]);
 
 		if (nowField) {
 			embed.setDescription(`${nowField}`);

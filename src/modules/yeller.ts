@@ -3,16 +3,14 @@ import { getMongoDatabase } from "./mongodb";
 import crypto from "crypto-js";
 
 class Yeller {
-
-  constructor() {
+	constructor() {
 		console.log("Yeller module loaded");
-    if (!process.env.NBOT_MONGODB_AES_KEY) {
-      console.log("NBOT_MONGODB_AES_KEY not set, yells will be ignored");
-    }
-  }
+		if (!process.env.NBOT_MONGODB_AES_KEY) {
+			console.log("NBOT_MONGODB_AES_KEY not set, yells will be ignored");
+		}
+	}
 
 	async handleMessage(message: Message) {
-
 		if (!process.env.NBOT_MONGODB_AES_KEY) {
 			return;
 		}
@@ -31,21 +29,23 @@ class Yeller {
 		} else {
 			shouldSave = true;
 		}
-		
+
 		// remove everything that isn't a letter or a number, also html tags "<...>"
-		const cleanMessage = message.content.replace(/<[^>]*>/g, '').replace(/[^a-zA-Z0-9]/g, '');
+		const cleanMessage = message.content
+			.replace(/<[^>]*>/g, "")
+			.replace(/[^a-zA-Z0-9]/g, "");
 		const len = cleanMessage.length;
 
 		if (len <= 7) {
 			return;
 		}
-		
+
 		// iterate every character and count if it's upper or lower case
 		let upperCaseCount = 0;
 		for (let i = 0; i < len; i++) {
 			if (cleanMessage[i] === cleanMessage[i].toUpperCase()) {
 				upperCaseCount++;
-			} 
+			}
 		}
 
 		const uppercaseRatio = upperCaseCount / len;
@@ -61,14 +61,14 @@ class Yeller {
 		}
 
 		if (shouldYell) {
-			
-			const cursor = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
-	
+			const cursor = await collection
+				.aggregate([{ $sample: { size: 1 } }])
+				.toArray();
+
 			if (cursor.length !== 0) {
-	
 				const doc = cursor[0];
 				let msg;
-	
+
 				// check if doc.m is an AES encrypted string
 				if (doc.crypted) {
 					msg = crypto.AES.decrypt(
@@ -78,7 +78,7 @@ class Yeller {
 				} else {
 					msg = doc.m;
 				}
-	
+
 				await message.channel.send(msg);
 			}
 		}
@@ -88,7 +88,7 @@ class Yeller {
 				message.content,
 				process.env.NBOT_MONGODB_AES_KEY
 			).toString();
-	
+
 			await collection.insertOne({
 				crypted: encrypted,
 				author: message.author.id,
@@ -96,9 +96,7 @@ class Yeller {
 
 			console.log(`Saving yell: ${message.content}`);
 		}
-	}	
-	
-	
+	}
 }
 
 const yeller = new Yeller();

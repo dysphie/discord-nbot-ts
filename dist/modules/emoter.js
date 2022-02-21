@@ -138,9 +138,11 @@ class Emoter {
         console.log(`Gonna search for ${safeKeyword}`);
         const emotes = db.collection("emoter.emotes");
         // find all emotes that match the keyword with a limit of 10
-        let emoteList = await emotes.find({ _id: { $regex: `.*${safeKeyword}*.`, $options: "i" } }).toArray();
-        emoteList = (0, match_sorter_1.matchSorter)(emoteList, keyword, { keys: ['_id'] });
-        let responseBody = 'Top matches: ';
+        let emoteList = await emotes
+            .find({ _id: { $regex: `.*${safeKeyword}*.`, $options: "i" } })
+            .toArray();
+        emoteList = (0, match_sorter_1.matchSorter)(emoteList, keyword, { keys: ["_id"] });
+        let responseBody = "Top matches: ";
         emoteList.forEach((emote) => {
             const newLine = `[${emote._id}](<${emote.url}>) `;
             // check if adding newLine to responseBody would go over 2000 characters
@@ -215,10 +217,10 @@ class Emoter {
         // find one in the database
         const db = (0, mongodb_1.getMongoDatabase)();
         if (db == null) {
-            interaction.reply('Database unavailable');
+            interaction.reply("Database unavailable");
         }
         else {
-            const emotes = db.collection('emoter.emotes');
+            const emotes = db.collection("emoter.emotes");
             const cursor = emotes.find({ _id: keyword });
             const doc = await cursor.next();
             if (doc) {
@@ -241,13 +243,19 @@ class Emoter {
             await this.handleRandomEmote(interaction);
         }
         else if (subCommand === "edit") {
-            await interaction.reply({ content: 'Not implemented yet', ephemeral: true });
+            await interaction.reply({
+                content: "Not implemented yet",
+                ephemeral: true,
+            });
         }
         else if (subCommand === "add") {
             await this.handleAddEmote(interaction);
         }
         else if (subCommand === "remove") {
-            await interaction.reply({ content: 'Not implemented yet', ephemeral: true });
+            await interaction.reply({
+                content: "Not implemented yet",
+                ephemeral: true,
+            });
         }
         else if (subCommand === "test") {
             await this.handleTestEmote(interaction);

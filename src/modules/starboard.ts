@@ -1,4 +1,8 @@
-import { MessageEmbed, MessageReaction, PartialMessageReaction } from "discord.js";
+import {
+	MessageEmbed,
+	MessageReaction,
+	PartialMessageReaction,
+} from "discord.js";
 import { getMongoDatabase } from "./mongodb";
 
 class Starboard {
@@ -12,7 +16,9 @@ class Starboard {
 		this.starboardChannelId = channelId;
 	}
 
-	async handleReactionUpdate(reaction: MessageReaction | PartialMessageReaction) {
+	async handleReactionUpdate(
+		reaction: MessageReaction | PartialMessageReaction
+	) {
 		if (reaction.partial) {
 			reaction = await reaction.fetch();
 		}
@@ -42,34 +48,32 @@ class Starboard {
 
 		const starredCol = db.collection("starboard.starred");
 
-    const msgId = reaction.message.id;
+		const msgId = reaction.message.id;
 
 		const doc = await starredCol.findOne({ msg_id: msgId });
 		if (doc) {
 			// check if message is still in starboard channel
 			const message = await starboardChannel.messages.fetch(doc.star_id);
 			if (message) {
+				if (reaction.count < 1) {
+					// remove message from starboard
+					await message.delete();
+					await starredCol.deleteOne({ msg_id: msgId });
+					return;
+				}
 
-        if (reaction.count < 1) {
-          // remove message from starboard
-          await message.delete();
-          await starredCol.deleteOne({ msg_id: msgId });
-          return;
-        }
-        
-        const embed = message.embeds[0];
-        if (embed) {
-          embed.footer = {
-            text: `⭐ ${reaction.count}`,
-          };
-          await message.edit({ embeds: [embed] });
-        }
+				const embed = message.embeds[0];
+				if (embed) {
+					embed.footer = {
+						text: `⭐ ${reaction.count}`,
+					};
+					await message.edit({ embeds: [embed] });
+				}
 			}
 		} else {
-			
-      if (reaction.count < 1) {
-        return;
-      }
+			if (reaction.count < 1) {
+				return;
+			}
 
 			const embed = new MessageEmbed()
 				.setAuthor({

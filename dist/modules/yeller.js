@@ -30,7 +30,9 @@ class Yeller {
             shouldSave = true;
         }
         // remove everything that isn't a letter or a number, also html tags "<...>"
-        const cleanMessage = message.content.replace(/<[^>]*>/g, '').replace(/[^a-zA-Z0-9]/g, '');
+        const cleanMessage = message.content
+            .replace(/<[^>]*>/g, "")
+            .replace(/[^a-zA-Z0-9]/g, "");
         const len = cleanMessage.length;
         if (len <= 7) {
             return;
@@ -52,7 +54,9 @@ class Yeller {
             return;
         }
         if (shouldYell) {
-            const cursor = await collection.aggregate([{ $sample: { size: 1 } }]).toArray();
+            const cursor = await collection
+                .aggregate([{ $sample: { size: 1 } }])
+                .toArray();
             if (cursor.length !== 0) {
                 const doc = cursor[0];
                 let msg;

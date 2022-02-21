@@ -1,24 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const config = {
-    "weather": {
-        "weather_guil_id": "719448049981849620",
+    weather: {
+        weather_guil_id: "719448049981849620",
     },
-    "emoter": {
-        "emote_guild_id": "719448049981849620",
+    emoter: {
+        emote_guild_id: "719448049981849620",
     },
     "patchbot-adblock": {
-        "redirects": {
+        redirects: {
             "League of Legends": "893193730692108298",
-        }
+        },
     },
-    "permathreads": [
+    permathreads: [
         "893193730692108298",
         "893192565992587364",
         "893193843921518612",
         "893193867250253845",
-        "941729048063782982"
-    ]
+        "941729048063782982",
+    ],
 };
 exports.default = config;
 //# sourceMappingURL=config.js.map
