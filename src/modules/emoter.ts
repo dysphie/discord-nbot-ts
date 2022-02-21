@@ -155,11 +155,8 @@ class Emoter {
 		const emotes = db.collection("emoter.emotes");
 
 		// get random emote
-		//const cursor = emotes.aggregate([{ $sample: { size: 1 } }]);
-		const doc = await emotes.findOne({_id: 'WeebsOut'});
-			
-		// get the first document
-		// const doc = await cursor.next();
+		const cursor = emotes.aggregate([{ $sample: { size: 1 } }]);
+		const doc = await cursor.next();
 		if (doc) {
 			const url = doc.url;
 			const name = doc._id.toString();
