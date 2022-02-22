@@ -46,47 +46,47 @@ client.once("ready", async () => {
     permathreads_1.default.recoverFromSleep(client);
     await (0, register_commands_1.default)(client.user.id, token);
 });
-client.on("interactionCreate", (interaction) => {
+client.on("interactionCreate", async (interaction) => {
     if (!interaction.isCommand()) {
         return;
     }
     if (interaction.commandName === "weather") {
-        weather_1.default.handleInteraction(interaction);
+        await weather_1.default.handleInteraction(interaction);
     }
     else if (interaction.commandName === "namecolor") {
-        namecolor_1.default.handleInteraction(interaction);
+        await namecolor_1.default.handleInteraction(interaction);
     }
     else if (interaction.commandName === "inspire") {
-        inspoquote_1.default.handleInteraction(interaction);
+        await inspoquote_1.default.handleInteraction(interaction);
     }
     else if (interaction.commandName == "animal") {
-        animals_1.default.handleInteraction(interaction);
+        await animals_1.default.handleInteraction(interaction);
     }
     else if (interaction.commandName == "emoter") {
-        emoter_1.default.handleInteraction(interaction);
+        await emoter_1.default.handleInteraction(interaction);
     }
 });
 client.on("messageReactionAdd", async (reaction) => {
-    starboard_1.default.handleReactionUpdate(reaction);
+    await starboard_1.default.handleReactionUpdate(reaction);
 });
 client.on("messageReactionRemove", async (reaction) => {
-    starboard_1.default.handleReactionUpdate(reaction);
+    await starboard_1.default.handleReactionUpdate(reaction);
 });
 client.on("messageCreate", async (message) => {
     if (message.author.bot) {
-        patchbot_adblock_1.default.handleMessage(message);
+        await patchbot_adblock_1.default.handleMessage(message);
         return;
     }
     const emoted = await emoter_1.default.handleMessage(message);
     if (!emoted) {
-        yeller_1.default.handleMessage(message);
+        await yeller_1.default.handleMessage(message);
     }
 });
 client.on("webhookUpdate", async (channel) => {
-    webhook_mgr_1.default.handleWebhookUpdate(channel);
+    await webhook_mgr_1.default.handleWebhookUpdate(channel);
 });
 client.on("threadUpdate", async (oldThread, newThread) => {
-    permathreads_1.default.handleThreadUpdate(newThread);
+    await permathreads_1.default.handleThreadUpdate(newThread);
 });
 client.login(token);
 //# sourceMappingURL=bot.js.map

@@ -48,50 +48,50 @@ client.once("ready", async () => {
 	await registerCommands(client.user.id, token);
 });
 
-client.on("interactionCreate", (interaction) => {
+client.on("interactionCreate", async (interaction) => {
 	if (!interaction.isCommand()) {
 		return;
 	}
 
 	if (interaction.commandName === "weather") {
-		weather.handleInteraction(interaction);
+		await weather.handleInteraction(interaction);
 	} else if (interaction.commandName === "namecolor") {
-		nameColorer.handleInteraction(interaction);
+		await nameColorer.handleInteraction(interaction);
 	} else if (interaction.commandName === "inspire") {
-		inspirer.handleInteraction(interaction);
+		await inspirer.handleInteraction(interaction);
 	} else if (interaction.commandName == "animal") {
-		animals.handleInteraction(interaction);
+		await animals.handleInteraction(interaction);
 	} else if (interaction.commandName == "emoter") {
-		emoter.handleInteraction(interaction);
+		await emoter.handleInteraction(interaction);
 	}
 });
 
 client.on("messageReactionAdd", async (reaction) => {
-	starboard.handleReactionUpdate(reaction);
+	await starboard.handleReactionUpdate(reaction);
 });
 
 client.on("messageReactionRemove", async (reaction) => {
-	starboard.handleReactionUpdate(reaction);
+	await starboard.handleReactionUpdate(reaction);
 });
 
 client.on("messageCreate", async (message) => {
 	if (message.author.bot) {
-		adblock.handleMessage(message);
+		await adblock.handleMessage(message);
 		return;
 	}
 
 	const emoted = await emoter.handleMessage(message);
 	if (!emoted) {
-		yeller.handleMessage(message);
+		await yeller.handleMessage(message);
 	}
 });
 
 client.on("webhookUpdate", async (channel) => {
-	webhookManager.handleWebhookUpdate(channel);
+	await webhookManager.handleWebhookUpdate(channel);
 });
 
 client.on("threadUpdate", async (oldThread, newThread) => {
-	permathreader.handleThreadUpdate(newThread);
+	await permathreader.handleThreadUpdate(newThread);
 });
 
 client.login(token);
