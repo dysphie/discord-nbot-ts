@@ -22,7 +22,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/bot.js"
+    "start": "node dist/bot.js",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
