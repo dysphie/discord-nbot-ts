@@ -9,6 +9,13 @@ class InspiroBot {
 	async handleInteraction(interaction: CommandInteraction) {
 		const url = "https://inspirobot.me/api?generate=true";
 		const quoteUrl = await axios.get(url);
+		if (quoteUrl.status !== 200) {
+			await interaction.reply({
+				content: "Service is currently unavailable",
+				ephemeral: true
+			});
+			return;
+		}
 		const att = new MessageAttachment(quoteUrl.data, "quote.jpg");
 		interaction.reply({ files: [att] });
 	}
