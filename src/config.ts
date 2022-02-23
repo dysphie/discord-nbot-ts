@@ -6,7 +6,7 @@ const config = {
 		emote_guild_id: "719448049981849620",
 	},
 	patchbot_redirects: {
-			"League of Legends": "941729048063782982"
+			"League of Legends": "893193730692108298"
 	},
 	permathreads: [
 		"893193730692108298",
