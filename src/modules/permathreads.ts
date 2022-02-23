@@ -38,7 +38,6 @@ class Permathreader {
 	}
 
 	async handleThreadUpdate(newThread: ThreadChannel) {
-		console.log("Thread update");
 		if (newThread.archived && this.isPermathread(newThread)) {
 			console.log(`Preventing ${newThread.name} from archiving`);
 			await newThread.setArchived(false);

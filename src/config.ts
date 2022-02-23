@@ -1,14 +1,12 @@
 const config = {
 	weather: {
-		weather_guil_id: "719448049981849620",
+		weather_guild_id: "719448049981849620",
 	},
 	emoter: {
 		emote_guild_id: "719448049981849620",
 	},
-	"patchbot-adblock": {
-		redirects: {
-			"League of Legends": "893193730692108298",
-		},
+	patchbot_redirects: {
+			"League of Legends": "941729048063782982"
 	},
 	permathreads: [
 		"893193730692108298",

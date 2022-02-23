@@ -1,6 +1,5 @@
-import { Message, MessageEmbed, ThreadChannel } from "discord.js";
-
-const redirectToThread: { [key: string]: string } = {};
+import { Message, MessageEmbed, TextChannel, ThreadChannel } from "discord.js";
+import config from "../config";
 
 class PatchBotAdBlock {
 	constructor() {
@@ -34,16 +33,22 @@ class PatchBotAdBlock {
 		if (repostEmbeds.length > 0) {
 			const gameName = repostEmbeds[0].author?.name;
 			if (gameName) {
-				const thread = message.guild?.channels.cache.get(
-					redirectToThread[gameName]
-				);
-				if (thread instanceof ThreadChannel) {
-					channel = thread;
+				const redirects: { [key: string]: string } = config.patchbot_redirects;
+				const redirectId = redirects[gameName];
+
+				if (redirectId) {
+					const foundChannel = message.client.channels.cache.get(redirectId);
+					if (foundChannel instanceof TextChannel || foundChannel instanceof ThreadChannel) {
+						channel = foundChannel;
+					}
 				}
 			}
 		}
 
-		await channel.send({ embeds: repostEmbeds });
+		await channel.send({
+			embeds: repostEmbeds
+		});
+
 		await message.delete();
 	}
 }
