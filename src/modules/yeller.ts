@@ -94,7 +94,7 @@ class Yeller {
 				author: message.author.id,
 			});
 
-			console.log(`Saving yell: ${message.content}`);
+			//console.log(`Saving yell: ${message.content}`);
 		}
 	}
 }

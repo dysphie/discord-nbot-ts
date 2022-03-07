@@ -4,8 +4,12 @@ import {
 	ColorResolvable,
 	GuildMemberRoleManager,
 	GuildMember,
+	User,
 } from "discord.js";
 import namer from "color-namer";
+import axios from "axios";
+import sharp from "sharp";
+import Vibrant from "node-vibrant";
 
 class Namecolor {
 	constructor() {
@@ -31,10 +35,39 @@ class Namecolor {
 			return;
 		}
 
-		if (hex == "none") {
+		if (hex === "none") {
 			this.removeOldColors(interaction.member, roles);
 			await interaction.reply("Removed custom name color");
 			return;
+		} 
+		else if (hex === "auto") {
+
+			const user = interaction.member.user;
+			if (!(user instanceof User)) {
+				await interaction.reply("This command can only be used in a guild.");
+				return;
+			}
+
+			const pfpUrl = user.avatarURL() || user.defaultAvatarURL;
+			const image = await axios.get(pfpUrl, { responseType: "arraybuffer" });
+			const buffer = Buffer.from(image.data, "binary");
+			const pngPfp = await sharp(buffer).toFormat('png').toBuffer();
+
+			const v = new Vibrant(pngPfp)
+			const palette = await v.getPalette();
+			if (!palette.Vibrant) {
+				await interaction.reply("Could not find a vibrant color in your profile picture.");
+				return;
+			}
+			hex = palette.Vibrant.getHex();
+		} 
+		else if (hex === 'random') {		
+			const letters = '0123456789ABCDEF';
+			let color = '#';
+			for (let i = 0; i < 6; i++) {
+				color += letters[Math.floor(Math.random() * 16)];
+			}
+			hex = color;
 		}
 
 		if (hex.startsWith("#")) {
@@ -56,7 +89,6 @@ class Namecolor {
 
 		const colorName = namer(`#${hex}`).ntc[0].name;
 
-		// now create a role with the color
 		const newRole = await interaction.guild.roles.create({
 			name: `🎨 ${colorName}`,
 			color: <ColorResolvable>hex,
@@ -68,7 +100,6 @@ class Namecolor {
 
 		this.removeOldColors(interaction.member, roles);
 
-		// add the role to the user
 		await roles.add(newRole);
 		await interaction.reply(
 			`Your name color has been set to **${colorName}**`
