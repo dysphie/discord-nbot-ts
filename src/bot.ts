@@ -11,6 +11,7 @@ import starboard from "./modules/starboard";
 import webhookManager from "./modules/utils/webhook_mgr";
 import weather from "./modules/weather/weather";
 import yeller from "./modules/yeller";
+import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 
 // check that nbot_token is set
@@ -75,6 +76,7 @@ client.on("messageReactionRemove", async (reaction) => {
 });
 
 client.on("messageCreate", async (message) => {
+
 	if (message.author.bot) {
 		await adblock.handleMessage(message);
 		return;
@@ -83,6 +85,7 @@ client.on("messageCreate", async (message) => {
 	const emoted = await emoter.handleMessage(message);
 	if (!emoted) {
 		await yeller.handleMessage(message);
+		await markdownUrl.handleMessage(message);
 	}
 });
 
