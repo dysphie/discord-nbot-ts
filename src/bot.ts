@@ -13,6 +13,7 @@ import weather from "./modules/weather/weather";
 import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
+import wordle from "./modules/wordle";
 
 // check that nbot_token is set
 
@@ -64,6 +65,8 @@ client.on("interactionCreate", async (interaction) => {
 		await animals.handleInteraction(interaction);
 	} else if (interaction.commandName == "emoter") {
 		await emoter.handleInteraction(interaction);
+	} else if (interaction.commandName === "wordle") {
+		await wordle.handleInteraction(interaction);
 	}
 });
 
@@ -86,6 +89,7 @@ client.on("messageCreate", async (message) => {
 	if (!emoted) {
 		await yeller.handleMessage(message);
 		await markdownUrl.handleMessage(message);
+		await wordle.handleMessage(message);
 	}
 });
 

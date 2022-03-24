@@ -37,6 +37,15 @@ const inspire = new SlashCommandBuilder()
     .setName('inspire')
     .setDescription('Retrieves a random inspirational quote')
 
+const wordle = new SlashCommandBuilder()
+    .setName('wordle')
+    .setDescription('Starts a game of wordle')
+    .addIntegerOption(option =>
+        option.setName('length')
+            .setDescription('The length of the words to use')
+            .setRequired(false))
+
+
 const emoter = new SlashCommandBuilder()
 .setName('emoter')
 .setDescription('Interact with the emoter module')
@@ -83,7 +92,8 @@ const commands = [
     namecolor.toJSON(),
     inspire.toJSON(),
     animal.toJSON(),
-    emoter.toJSON()
+    emoter.toJSON(),
+    wordle.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

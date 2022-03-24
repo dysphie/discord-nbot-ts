@@ -13,10 +13,11 @@
     "dotenv": "^16.0.0",
     "match-sorter": "^6.3.1",
     "mongodb": "^4.3.1",
-    "node-vibrant": "^3.2.0-alpha",
+    "node-vibrant": "^3.2.1-alpha.1",
     "sharp": "^0.30.2"
   },
   "devDependencies": {
+    "@types/random-words": "^1.1.2",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "eslint": "^8.8.0"
