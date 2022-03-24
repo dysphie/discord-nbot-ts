@@ -3,7 +3,6 @@ import { CommandInteraction, Message, TextChannel } from "discord.js";
 import sharp from "sharp";
 import { getMongoDatabase } from "./mongodb";
 
-const wordlen = 5;
 const attempts = 6;
 const gap = 5;
 const dim = 32;
@@ -22,19 +21,20 @@ class Wordle {
   numAttempts: number; 
 
   constructor() {
+
     this.curChannel = null;
     console.log('Wordle module loaded');
     this.numAttempts = 0;
     this.winnerWord = "";
     this.userInput = new Array(attempts);
     for (let i = 0; i < attempts; i++) {
-      this.userInput[i] = new Array(wordlen);
+      this.userInput[i] = [];
     }
   }
 
   async validateWord(word: string): Promise<boolean> {
     
-    if (word.length != wordlen) {
+    if (word.length != this.winnerWord?.length) {
       return false;
     }
 
@@ -93,7 +93,7 @@ class Wordle {
 
     // clear the board
     for (let i = 0; i < attempts; i++) {
-      this.userInput[i] = new Array(wordlen);
+      this.userInput[i] = [];
     }
 
     this.curChannel = null;
@@ -123,7 +123,12 @@ class Wordle {
       return;
     }
 
-    this.winnerWord = await this.getRandomWord(wordlen);
+    let wantedLen = interaction.options.getInteger('length');
+    if (wantedLen === null) {
+      wantedLen = 5;
+    }
+
+    this.winnerWord = await this.getRandomWord(wantedLen);
     if (this.winnerWord === null) {
       await interaction.reply(`Internal error`);
       this.reset();
@@ -152,7 +157,7 @@ class Wordle {
       throw new Error('No winner word');
     }
 
-    const width = wordlen * dim + (wordlen - 1) * gap;
+    const width = this.winnerWord.length * dim + (this.winnerWord.length - 1) * gap;
     const height = attempts * dim + (attempts - 1) * gap;
 
     let svgContent = `<svg width="${width}" height="${height}">`;
@@ -162,7 +167,7 @@ class Wordle {
 
     for (let i = 0; i < attempts; i++) {
 
-      for (let j = 0; j < wordlen; j++) {
+      for (let j = 0; j < this.winnerWord.length; j++) {
         x = j * (dim + gap);
         y = i * (dim + gap);
 
@@ -182,14 +187,6 @@ class Wordle {
           else if (this.winnerWord.indexOf(userChar) > -1) {
             color = COLOR_PRESENT; // yellow
           }
-
-          // square with char
-          // svgContent += `
-          //   <g>
-          //   <rect x="${x}" y="${y}" width="${dim}" height="${dim}" fill="${color}" />
-          //   <text x="${x + dim / 2}" y="${y + dim / 2}" text-anchor="middle" alignment-baseline="central" font-size="16" fill="black">${userChar.toUpperCase()}</text>
-          //   </g>
-          // `;
 
           svgContent += `
             <g>
