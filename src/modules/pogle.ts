@@ -19,7 +19,7 @@ class Pogle {
   winnerWord: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userInput: any;
-  numAttempts: number; 
+  numAttempts: number;
   pfpColumn: Buffer | null;
 
   constructor() {
@@ -35,7 +35,7 @@ class Pogle {
   }
 
   async validateWord(word: string): Promise<boolean> {
-    
+
     if (word.length != this.winnerWord?.length) {
       return false;
     }
@@ -59,7 +59,7 @@ class Pogle {
       return;
     }
 
-    const word = message.content.substring(1).toLowerCase();
+    const word = message.content.substring(1);
 
     const valid = await this.validateWord(word);
     if (!valid) {
@@ -69,7 +69,7 @@ class Pogle {
 
     this.userInput[this.numAttempts++] = word;
 
-    const svg = await this.createPreviewSvg(message.member as GuildMember);
+    const svg = await this.createPreviewSvg();
     let content = `${userMention(message.author.id)} guessed ${inlineCode(word)}.`;
 
     if (word === this.winnerWord) {
@@ -81,12 +81,13 @@ class Pogle {
     }
 
     await message.channel.send({
-        files: [
-          {
-            attachment: svg,
-            name: 'wordle.png'
-          }],
-        content: content});
+      files: [
+        {
+          attachment: svg,
+          name: 'wordle.png'
+        }],
+      content: content
+    });
   }
 
   reset() {
@@ -108,11 +109,33 @@ class Pogle {
     }
 
     const collection = db.collection('emoter.emotes');
-    
-        const entry = await collection.aggregate([
-          { $match: { strLenCP: length } },
-          { $sample: { size: 1 } }
-        ]).toArray();
+
+    const entry = await collection.aggregate([
+      {
+        $addFields: {
+          name: {
+            $toString: "$_id"
+          }
+        }
+      },
+      {
+        $project: {
+          "length": {
+            $strLenCP: "$name"
+          }
+        }
+      },
+      {
+        $match: {
+          length: length
+        }
+      },
+      {
+        $sample: {
+          size: 1
+        }
+      }
+    ]).toArray();
 
     if (entry.length === 0) {
       return null;
@@ -146,22 +169,22 @@ class Pogle {
     }
 
     console.log(`Starting game of wordle with word: ${this.winnerWord}`);
-    
+
     this.curChannel = interaction.channel as TextChannel;
     this.numAttempts = 0;
-    
+
     await interaction.reply({
       content: `Started a game of wordle!`,
       files: [
         {
-          attachment: await this.createPreviewSvg(member),
+          attachment: await this.createPreviewSvg(),
           name: 'wordle.png'
         }
       ]
     });
   }
 
-  async createPreviewSvg(member: GuildMember) {
+  async createPreviewSvg() {
 
     if (this.winnerWord === null) {
       throw new Error('No winner word');
@@ -213,26 +236,6 @@ class Pogle {
               </text>
             </g>
           `
-
-          if (j == this.winnerWord.length - 1 && member) {
-            const buffer = (await axios({ url: member.displayAvatarURL(),
-              responseType: "arraybuffer" })).data as Buffer;
-            
-            if (buffer) {
-              svgContent += `
-                <g>
-                  <image
-                      x="${x + 10.0}"
-                      y="${y}"
-                      width="${dim}"
-                      height="${dim}"
-                      xlink:href="data:image/png;base64,${buffer.toString('base64')}"
-                  />
-                </g>
-              `;
-            }
-
-          }
         }
         else { // empty square
           svgContent += `<rect x="${x}" y="${y}" width="${dim}" height="${dim}" fill="white" />`;
