@@ -138,22 +138,21 @@ class Wordle {
 
   async validateWord(word: string): Promise<boolean> {
 
+    if (word.length != this.winnerWord?.length) {
+      return false;
+    }
+
+    const db = getMongoDatabase();
+    if (!db) {
+      return false;
+    }
+
+    const collection = db.collection('dictionary');
+    const entry = await collection.findOne({ w: word });
+    if (entry === null) {
+      return false;
+    }
     return true;
-    // if (word.length != this.winnerWord?.length) {
-    //   return false;
-    // }
-
-    // const db = getMongoDatabase();
-    // if (!db) {
-    //   return false;
-    // }
-
-    // const collection = db.collection('dictionary');
-    // const entry = await collection.findOne({ w: word });
-    // if (entry === null) {
-    //   return false;
-    // }
-    // return true;
   }
 
   async doGuess(message: Message) {
