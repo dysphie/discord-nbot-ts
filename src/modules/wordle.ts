@@ -161,7 +161,7 @@ class Wordle {
     const valid = await this.validateWord(guess);
     if (!valid) {
       await message.react('❌');
-      return;
+      return true;
     }
 
     const maxlen = this.winnerWord.length;
