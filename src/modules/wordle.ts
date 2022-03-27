@@ -1,222 +1,350 @@
 import { bold, inlineCode, userMention } from "@discordjs/builders";
-import { CommandInteraction, Message, TextChannel } from "discord.js";
+import axios from "axios";
+import { CommandInteraction, GuildMember, Message, TextChannel } from "discord.js";
 import sharp from "sharp";
 import { getMongoDatabase } from "./mongodb";
 
-const attempts = 6;
-const gap = 5;
-const dim = 32;
+const DEFAULT_ATTEMPTS = 6;
 
-const COLOR_ABSENT = '#787c7e';
-const COLOR_EXACT = '#6aaa64';
-const COLOR_PRESENT = '#c9b458';
-const COLOR_EMPTY = '#ffffff';
+const BOARD_TILE_GAP = 1;
+
+const BOARD_TILE_HEIGHT = 20;
+const BOARD_TILE_WIDTH = 32;
+
+const KB_BUTTON_HEIGHT = 20;
+const KB_BUTTON_WIDTH = 20;
+
+enum GuessStatus {
+  Unknown,
+  Absent,
+  Present,
+  Correct
+}
 
 
-class Wordle {
-  curChannel: TextChannel | null;
-  winnerWord: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  userInput: any;
-  numAttempts: number; 
+const colors = new Map<GuessStatus, string>();
+colors.set(GuessStatus.Unknown, "#ffffff");
+colors.set(GuessStatus.Correct, "#6aaa64");
+colors.set(GuessStatus.Present, "#c9b458");
+colors.set(GuessStatus.Absent, "#787c7e");
 
-  constructor() {
+interface Guess {
+  letter: string;
+  status: GuessStatus;
+}
+const keyboard: Array<Array<string>> = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["z", "x", "c", "v", "b", "n", "m"]
+]
 
-    this.curChannel = null;
-    console.log('Wordle module loaded');
-    this.numAttempts = 0;
-    this.winnerWord = "";
-    this.userInput = new Array(attempts);
-    for (let i = 0; i < attempts; i++) {
-      this.userInput[i] = [];
-    }
-  }
 
-  async validateWord(word: string): Promise<boolean> {
-    
-    if (word.length != this.winnerWord?.length) {
+
+const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
+const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
+
+class WordleManager {
+  games: Array<Wordle> = [];
+
+  async handleMessage(message: Message): Promise<boolean> {
+    if (!message.content.startsWith(">")) {
       return false;
     }
 
-    const db = getMongoDatabase();
-    if (!db) {
-      return false;
+    // find game where channel is the same
+    const game = this.games.find(g => g.channel?.id === message.channel.id);
+    if (game) {
+      const continueGame = await game.doGuess(message);
+      if (!continueGame) {
+        this.games = this.games.filter(g => g !== game);
+      }
     }
 
-    const collection = db.collection('dictionary');
-    const entry = await collection.findOne({ w: word });
-    if (entry === null) {
-      return false;
-    }
     return true;
   }
 
-  async handleMessage(message: Message) {
-    if (!message.content.startsWith('>') ||
-      message.channel != this.curChannel || this.winnerWord === "") {
-      return;
+  async handleInteraction(interaction: CommandInteraction): Promise<boolean> {
+    const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
+    if (game) {
+      interaction.reply("A game is already in progress in this channel.");
+      return false;
     }
 
-    const word = message.content.substring(1).toLowerCase();
+    const wordle = new Wordle();
+    await wordle.beginGame(interaction);
+    this.games.push(wordle);
+    return true;
+  }
+}
 
-    const valid = await this.validateWord(word);
+class Wordle {
+  guesses: Array<Array<Guess>>;
+  playerHistory: Array<string>;
+  winnerWord: string;
+  numAttempts: number;
+  channel: TextChannel | null;
+
+  guessKeyBoard: Array<Guess> = [];
+
+  keyboardColors: Map<string, GuessStatus>;
+  maxAttempts: number;
+
+
+  constructor() {
+    this.channel = null;
+    this.numAttempts = 0;
+    this.winnerWord = '';
+    this.guesses = [];
+    this.playerHistory = [];
+    this.keyboardColors = new Map();
+    this.maxAttempts = DEFAULT_ATTEMPTS;
+
+    for (const row of keyboard) {
+      for (const letter of row) {
+        this.guessKeyBoard.push({ letter: letter, status: GuessStatus.Unknown });
+      }
+    }
+  }
+
+  async beginGame(interaction: CommandInteraction): Promise<void> {
+    this.channel = interaction.channel as TextChannel;
+    await this.generateRandomWord(5);
+    console.log("Starting a new game of wordle with word " + this.winnerWord);
+
+    await interaction.reply({
+      files: await this.getAttachments(),
+      content: "A new game of wordle has started!"
+    });
+  }
+
+  async getAttachments() {
+    return [
+        {
+          attachment: await this.buildBoardSvg(),
+          name: 'board.png'
+        },
+        {
+          attachment: await this.createPreviewKeyboard(),
+          name: 'wordle_keyboard.png'
+        }
+      ];
+  }
+
+  async validateWord(word: string): Promise<boolean> {
+
+    return true;
+    // if (word.length != this.winnerWord?.length) {
+    //   return false;
+    // }
+
+    // const db = getMongoDatabase();
+    // if (!db) {
+    //   return false;
+    // }
+
+    // const collection = db.collection('dictionary');
+    // const entry = await collection.findOne({ w: word });
+    // if (entry === null) {
+    //   return false;
+    // }
+    // return true;
+  }
+
+  async doGuess(message: Message) {
+    const guess = message.content.substring(1).toLowerCase();
+
+    const valid = await this.validateWord(guess);
     if (!valid) {
       await message.react('❌');
       return;
     }
 
-    this.userInput[this.numAttempts++] = word;
+    const maxlen = this.winnerWord.length;
 
-    const svg = await this.createPreviewSvg();
-    let content = `${userMention(message.author.id)} guessed ${inlineCode(word)}.`;
-
-    if (word === this.winnerWord) {
-      content += ` ${bold('You win!')}`;
-      this.reset();
-    } else if (this.numAttempts >= attempts) {
-      content += ` ${bold('You lose!')}\nThe word was \`${this.winnerWord}\``;
-      this.reset();
+    const lineGuess = new Array(maxlen);
+    
+    for (let i = 0; i < maxlen; i++) {
+      lineGuess[i] = { letter: guess[i], status: GuessStatus.Unknown };
     }
 
-    await message.channel.send({
-        files: [
-          {
-            attachment: svg,
-            name: 'wordle.png'
-          }],
-        content: content});
-  }
+    const guessArr = guess.split('');
+    const filteredWord = this.winnerWord.split('');
 
-  reset() {
-    this.winnerWord = '';
-    this.numAttempts = 0;
-
-    // clear the board
-    for (let i = 0; i < attempts; i++) {
-      this.userInput[i] = [];
+    // Find all full matches
+    for (let i = 0; i < maxlen; i++) {
+      if (filteredWord[i] === guessArr[i]) {
+        guessArr[i] = '\0';
+        filteredWord[i] = '\0';
+        lineGuess[i].status = GuessStatus.Correct;
+        this.updateKeyboard(lineGuess[i]);
+      }
     }
 
-    this.curChannel = null;
+    // Find all partial matches
+    for (let i = 0; i < maxlen; i++) {
+      if (filteredWord[i] === '\0' || guessArr[i] === '\0') {
+        continue;
+      }
+
+      if (filteredWord.includes(guessArr[i])) {
+        lineGuess[i].status = GuessStatus.Present;
+        this.updateKeyboard(lineGuess[i]);
+      } else {
+        lineGuess[i].status = GuessStatus.Absent;
+        this.updateKeyboard(lineGuess[i]);
+      }
+    }
+
+    this.guesses.push(lineGuess);
+    this.numAttempts++;
+
+    await message.reply({
+      files: await this.getAttachments()
+    })
+
+    let continueGame = true;
+    if (guess === this.winnerWord) {
+      await message.channel.send(` ${bold('You win!')}`);
+      continueGame = false;
+    } else if (this.numAttempts >= this.maxAttempts) 
+    {
+      await message.channel.send(` ${bold('You lose!')}\nThe word was \`${this.winnerWord}\``);
+      continueGame = false;
+    }
+    
+    return continueGame;
   }
-  async getRandomWord(length: number): Promise<string | null> {
+
+  async generateRandomWord(length: number) {
 
     const db = getMongoDatabase();
     if (!db) {
-      return null;
+      return;
     }
 
     const collection = db.collection('dictionary');
-        const entry = await collection.aggregate([
+    const entry = await collection.aggregate([
       { $match: { l: length } },
       { $sample: { size: 1 } }
     ]).toArray();
 
     if (entry.length === 0) {
-      return null;
+      return;
     }
-    return entry[0]['w'];
+    this.winnerWord = entry[0]['w'];
   }
 
-  async handleInteraction(interaction: CommandInteraction) {
-    if (this.winnerWord !== "") {
-      await interaction.reply(`There is already a game in progress`);
-      return;
+  updateKeyboard(guess: Guess) {
+    const curStatus = this.keyboardColors.get(guess.letter);
+    if (!curStatus || guess.status > curStatus) {
+      this.keyboardColors.set(guess.letter, guess.status);
     }
+  }
 
-    let wantedLen = interaction.options.getInteger('length');
-    if (wantedLen === null) {
-      wantedLen = 5;
-    }
+  async createPreviewKeyboard() {
 
-    this.winnerWord = await this.getRandomWord(wantedLen);
-    if (this.winnerWord === null) {
-      await interaction.reply(`Internal error`);
-      this.reset();
-      return;
-    }
+    let maxWidth = 0;
+    const maxHeight =  3 * KB_BUTTON_HEIGHT + 2 * BOARD_TILE_GAP;
 
-    console.log(`Starting game of wordle with word: ${this.winnerWord}`);
-    
-    this.curChannel = interaction.channel as TextChannel;
-    this.numAttempts = 0;
-    
-    await interaction.reply({
-      content: `Started a game of wordle!`,
-      files: [
-        {
-          attachment: await this.createPreviewSvg(),
-          name: 'wordle.png'
-        }
-      ]
+    let svgContent = '';
+
+    keyboard.forEach((row, rowIndex) => {
+
+      const rowWidth = row.length * KB_BUTTON_WIDTH + (row.length - 1) * BOARD_TILE_GAP;
+      if (rowWidth > maxWidth) {
+        maxWidth = rowWidth;
+      }
+
+      //const rowWidth = row.length * KB_BUTTON_WIDTH + (row.length - 1) * BOARD_TILE_GAP;
+      // offset from maxWidth to center the row
+      //const rowX = (KB_MAX_WIDTH - rowWidth) / 2;
+
+      row.forEach((key, keyIndex) => {
+        const x = keyIndex * (KB_BUTTON_WIDTH + BOARD_TILE_GAP);
+        const y = rowIndex * (KB_BUTTON_HEIGHT + BOARD_TILE_GAP);
+
+        //console.log(`Requesting color for ${key}`);
+        const guessStatus = this.keyboardColors.get(key) || GuessStatus.Unknown;
+        const color = colors.get(guessStatus);
+        svgContent += `
+          <rect x="${x}" y="${y}" width="${KB_BUTTON_WIDTH}" height="${KB_BUTTON_HEIGHT}" fill="${color}" />
+          <text 
+            x="${x + KB_BUTTON_WIDTH / 2}" 
+            y="${y + KB_BUTTON_HEIGHT / 2 + 4.5}" 
+            font-family="Arial"
+            font-weight="bold"
+            text-anchor="middle" 
+            fill="black">
+            ${key.toUpperCase()}
+          </text>
+        `;
+      }
+      );
     });
+
+    svgContent += '</svg>';
+
+    svgContent = `<svg width="${maxWidth}" height="${maxHeight}">` + svgContent;
+    const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
+    return buffer;
   }
 
-  async createPreviewSvg() {
+  async buildBoardSvg() {
 
     if (this.winnerWord === null) {
       throw new Error('No winner word');
     }
 
-    const width = this.winnerWord.length * dim + (this.winnerWord.length - 1) * gap;
-    const height = attempts * dim + (attempts - 1) * gap;
+    const wordLen = this.winnerWord.length;
+
+    const width = this.winnerWord.length * BOARD_TILE_WIDTH + (wordLen - 1) * BOARD_TILE_GAP;
+    const height = this.maxAttempts * BOARD_TILE_HEIGHT + (this.maxAttempts - 1) * BOARD_TILE_GAP;
 
     let svgContent = `<svg width="${width}" height="${height}">`;
 
-    let x = 0;
-    let y = 0;
+    for (let i = 0; i < this.maxAttempts; i++) {
+      for (let j = 0; j < wordLen; j++) {
 
-    for (let i = 0; i < attempts; i++) {
+        const x = j * (BOARD_TILE_WIDTH + BOARD_TILE_GAP);
+        const y = i * (BOARD_TILE_HEIGHT + BOARD_TILE_GAP);
 
-      for (let j = 0; j < this.winnerWord.length; j++) {
-        x = j * (dim + gap);
-        y = i * (dim + gap);
+        if (i < this.numAttempts) {
 
-        let color = '';
-
-        const userChar: string = this.userInput[i][j];
-
-        if (userChar != undefined) {
-
-          //console.log(`There is input: ${userChar}`);
-          color = COLOR_ABSENT;
-
-          // check if character exists in winner word
-          if (userChar == this.winnerWord.charAt(j)) {
-            color = COLOR_EXACT; // green
-          }
-          else if (this.winnerWord.indexOf(userChar) > -1) {
-            color = COLOR_PRESENT; // yellow
-          }
-
+          const guess = this.guesses[i][j];
+          const color = colors.get(guess.status);
+          const fontSize = 18;
           svgContent += `
             <g>
-              <rect x="${x}" y="${y}" width="${dim}" height="${dim}" fill="${color}" />
+              <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${color}" />
               <text
-                  font-size="18"
+                  font-size="${fontSize}"
                   font-family="Arial"
                   font-weight="bold"
-                  x="${x + dim / 2}"
-                  y="${y + dim / 2 + 5.0}"
-                  dominant-baseline="middle"
+                  x="${x + BOARD_TILE_WIDTH * 0.5}"
+                  y="${y + BOARD_TILE_HEIGHT * 0.5 + 5.5}"
+                  dominant-baseline="central"
                   text-anchor="middle">
-                ${userChar.toUpperCase()}
+                ${guess.letter.toUpperCase()}
               </text>
             </g>
-          `
+          `;
         }
-        else { // empty square
-          svgContent += `<rect x="${x}" y="${y}" width="${dim}" height="${dim}" fill="white" />`;
+        else {
+          svgContent += `
+          <g>
+            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="white" />
+          </g>
+          `
         }
       }
     }
 
     svgContent += `</svg>`;
-
     const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
     return buffer;
   }
 }
 
-const wordle = new Wordle();
+const wordle = new WordleManager();
 
 export default wordle;

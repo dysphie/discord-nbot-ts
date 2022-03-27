@@ -14,7 +14,6 @@ import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
-import pogle from "./modules/pogle";
 
 // check that nbot_token is set
 
@@ -68,8 +67,6 @@ client.on("interactionCreate", async (interaction) => {
 		await emoter.handleInteraction(interaction);
 	} else if (interaction.commandName === "wordle") {
 		await wordle.handleInteraction(interaction);
-	} else if (interaction.commandName === "pogle") {
-		await pogle.handleInteraction(interaction);
 	}
 });
 
@@ -93,7 +90,6 @@ client.on("messageCreate", async (message) => {
 		await yeller.handleMessage(message);
 		await markdownUrl.handleMessage(message);
 		await wordle.handleMessage(message);
-		await pogle.handleMessage(message);
 	}
 });
 

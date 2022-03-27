@@ -45,15 +45,6 @@ const wordle = new SlashCommandBuilder()
             .setDescription('The length of the words to use')
             .setRequired(false))
 
-const pogle = new SlashCommandBuilder()
-    .setName('pogle')
-    .setDescription('Starts a game of pogle')
-    .addIntegerOption(option =>
-        option.setName('length')
-            .setDescription('The length of the emotes to use')
-            .setRequired(false))
-
-
 const emoter = new SlashCommandBuilder()
 .setName('emoter')
 .setDescription('Interact with the emoter module')
@@ -101,8 +92,7 @@ const commands = [
     inspire.toJSON(),
     animal.toJSON(),
     emoter.toJSON(),
-    wordle.toJSON(),
-    pogle.toJSON()
+    wordle.toJSON()
 ];
 
 const registerCommands = async (clientId: string, token: string) => {
