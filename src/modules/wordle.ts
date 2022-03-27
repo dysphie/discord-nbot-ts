@@ -107,8 +107,14 @@ class Wordle {
   }
 
   async beginGame(interaction: CommandInteraction): Promise<void> {
+
+    let wantedLen = interaction.options.getInteger('length');
+    if (wantedLen === null) {
+      wantedLen = 5;
+    }
+
     this.channel = interaction.channel as TextChannel;
-    await this.generateRandomWord(5);
+    await this.generateRandomWord(wantedLen);
     console.log("Starting a new game of wordle with word " + this.winnerWord);
 
     await interaction.reply({
