@@ -1,10 +1,10 @@
 import { bold, inlineCode, userMention } from "@discordjs/builders";
 import axios from "axios";
-import { CommandInteraction, GuildMember, Message, TextChannel } from "discord.js";
+import { CommandInteraction, GuildMember, Message, MessageEmbed, TextChannel } from "discord.js";
 import sharp from "sharp";
 import { getMongoDatabase } from "./mongodb";
 
-const DEFAULT_ATTEMPTS = 6;
+const MAX_ATTEMPTS = 6;
 
 const BOARD_TILE_GAP = 1;
 
@@ -64,6 +64,8 @@ class WordleManager {
   }
 
   async handleInteraction(interaction: CommandInteraction): Promise<boolean> {
+
+    
     const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
     if (game) {
       interaction.reply("A game is already in progress in this channel.");
@@ -77,17 +79,31 @@ class WordleManager {
   }
 }
 
+interface DbGame {
+  word: string,
+  guesses: number,
+  players: Array<string>,
+  date: Date,
+  won: boolean,
+  guild: string
+}
+
+interface GuildStats {
+  totalPlayed: number;
+  totalWon: number;
+  guessDistribution: Array<number>;
+  maxWinStreak: number;
+  currentWinStreak: number;
+}
+
 class Wordle {
   guesses: Array<Array<Guess>>;
   playerHistory: Array<string>;
   winnerWord: string;
-  numAttempts: number;
   channel: TextChannel | null;
-
-  guessKeyBoard: Array<Guess> = [];
-
   keyboardColors: Map<string, GuessStatus>;
-  maxAttempts: number;
+  numAttempts: number;
+  won: boolean;
 
 
   constructor() {
@@ -97,13 +113,7 @@ class Wordle {
     this.guesses = [];
     this.playerHistory = [];
     this.keyboardColors = new Map();
-    this.maxAttempts = DEFAULT_ATTEMPTS;
-
-    for (const row of keyboard) {
-      for (const letter of row) {
-        this.guessKeyBoard.push({ letter: letter, status: GuessStatus.Unknown });
-      }
-    }
+    this.won = false;
   }
 
   async beginGame(interaction: CommandInteraction): Promise<void> {
@@ -155,6 +165,95 @@ class Wordle {
     return true;
   }
 
+  async saveToDb()
+  {
+    const db = getMongoDatabase();
+    if (!db || !this.channel) {
+      return;
+    }
+
+    const collection = db.collection('wordle');
+
+    const game: DbGame = {
+      word: this.winnerWord,
+      guesses: this.numAttempts,
+      players: this.playerHistory,
+      date: new Date(),
+      won: this.won,
+      guild: this.channel.guild.id
+    }
+
+    await collection.insertOne(game);
+  }
+
+  async getStatsForGuild(guildId: string): Promise<GuildStats|null> {
+    const db = getMongoDatabase();
+    if (!db) {
+      return null;
+    }
+
+    const collection = db.collection('wordle');
+    let entries = await collection.find({ guild: guildId }).toArray();
+
+    entries = entries.sort((a, b) => {
+      if (a.date < b.date) {
+        return -1;
+      }
+      if (a.date > b.date) {
+        return 1;
+      }
+      return 0;
+    });
+
+    console.log(entries);
+
+
+    let newestStreak = 0;
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let resetOnce = false;
+    
+    // iterate entries backwards
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].won) {
+        currentStreak++;
+
+        if (currentStreak > longestStreak) {
+          longestStreak = currentStreak;
+        }
+
+        if (!resetOnce) {
+          newestStreak = currentStreak;
+        }
+
+      } else {
+        currentStreak = 0;
+        resetOnce = true;
+      }
+    }
+
+    if (!resetOnce) {
+      newestStreak = currentStreak;
+    }
+
+    const numAttempts = new Array(MAX_ATTEMPTS);
+    // fill in the array with the number of attempts
+    for (let i = 0; i < entries.length; i++) {
+      numAttempts[entries[i].guesses]++;
+    }
+
+    const numPlayed = entries.length;
+    const numWon = entries.filter(e => e.won).length;
+
+    return {
+      totalPlayed: numPlayed,
+      totalWon: numWon,
+      guessDistribution: numAttempts,
+      maxWinStreak: longestStreak,
+      currentWinStreak: newestStreak
+    }
+  }
+
   async doGuess(message: Message) {
     const guess = message.content.substring(1).toLowerCase();
 
@@ -163,6 +262,8 @@ class Wordle {
       await message.react('❌');
       return true;
     }
+
+    this.playerHistory.push(message.author.id);
 
     const maxlen = this.winnerWord.length;
 
@@ -207,14 +308,34 @@ class Wordle {
       files: await this.getAttachments()
     })
 
+    let content = '';
     let continueGame = true;
     if (guess === this.winnerWord) {
-      await message.channel.send(` ${bold('You win!')}`);
+      content = ` ${bold('You win!')}`;
+      this.won = true;
       continueGame = false;
-    } else if (this.numAttempts >= this.maxAttempts) 
+    } else if (this.numAttempts >= MAX_ATTEMPTS) 
     {
-      await message.channel.send(` ${bold('You lose!')}\nThe word was \`${this.winnerWord}\``);
+      content = ` ${bold('You lose!')}\nThe word was \`${this.winnerWord}\``;
       continueGame = false;
+    }
+
+    if (!continueGame && this.channel) {
+      await this.saveToDb();
+
+      const stats = await this.getStatsForGuild(this.channel.guild.id);
+      if (stats) {
+        
+        content += `
+        **Total played:** ${stats.totalPlayed}
+        **Total won:** ${stats.totalWon / stats.totalPlayed * 100}%
+        **Longest win streak:** ${stats.maxWinStreak}
+        **Current win streak:** ${stats.currentWinStreak}
+        `;
+        // **Guess distribution:** Yeah I'm not plotting a graph right now`;
+      }
+      
+      await message.channel.send(content);
     }
     
     return continueGame;
@@ -303,11 +424,11 @@ class Wordle {
     const wordLen = this.winnerWord.length;
 
     const width = this.winnerWord.length * BOARD_TILE_WIDTH + (wordLen - 1) * BOARD_TILE_GAP;
-    const height = this.maxAttempts * BOARD_TILE_HEIGHT + (this.maxAttempts - 1) * BOARD_TILE_GAP;
+    const height = MAX_ATTEMPTS * BOARD_TILE_HEIGHT + (MAX_ATTEMPTS - 1) * BOARD_TILE_GAP;
 
     let svgContent = `<svg width="${width}" height="${height}">`;
 
-    for (let i = 0; i < this.maxAttempts; i++) {
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
       for (let j = 0; j < wordLen; j++) {
 
         const x = j * (BOARD_TILE_WIDTH + BOARD_TILE_GAP);
