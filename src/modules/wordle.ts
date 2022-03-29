@@ -1,6 +1,6 @@
 import { bold, inlineCode, userMention } from "@discordjs/builders";
 import axios from "axios";
-import { CommandInteraction, GuildMember, Message, MessageEmbed, TextChannel } from "discord.js";
+import { CommandInteraction, GuildMember, Message, MessageAttachment, MessageEmbed, TextChannel } from "discord.js";
 import sharp from "sharp";
 import { getMongoDatabase } from "./mongodb";
 
@@ -68,7 +68,7 @@ class WordleManager {
     
     const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
     if (game) {
-      interaction.reply("A game is already in progress in this channel.");
+      await game.displayGraphics(interaction);
       return false;
     }
 
@@ -97,6 +97,7 @@ interface GuildStats {
 }
 
 class Wordle {
+  lastGuessTime: Date | null;
   guesses: Array<Array<Guess>>;
   playerHistory: Array<string>;
   winnerWord: string;
@@ -107,6 +108,7 @@ class Wordle {
 
 
   constructor() {
+    this.lastGuessTime = null;
     this.channel = null;
     this.numAttempts = 0;
     this.winnerWord = '';
@@ -205,9 +207,6 @@ class Wordle {
       return 0;
     });
 
-    console.log(entries);
-
-
     let newestStreak = 0;
     let currentStreak = 0;
     let longestStreak = 0;
@@ -236,22 +235,27 @@ class Wordle {
       newestStreak = currentStreak;
     }
 
-    const numAttempts = new Array(MAX_ATTEMPTS);
+    const numAttempts = new Array(MAX_ATTEMPTS).fill(0);
     // fill in the array with the number of attempts
     for (let i = 0; i < entries.length; i++) {
-      numAttempts[entries[i].guesses]++;
+      const guessIndex = entries[i].guesses - 1;
+      numAttempts[guessIndex]++;
+      //console.log(`in ${entries[i].guesses} attempts: ${numAttempts[entries[i].guesses]}`);
     }
 
     const numPlayed = entries.length;
     const numWon = entries.filter(e => e.won).length;
 
-    return {
+    const stats = {
       totalPlayed: numPlayed,
       totalWon: numWon,
       guessDistribution: numAttempts,
       maxWinStreak: longestStreak,
       currentWinStreak: newestStreak
     }
+
+    //console.log(stats);
+    return stats;
   }
 
   async doGuess(message: Message) {
@@ -260,6 +264,16 @@ class Wordle {
     const valid = await this.validateWord(guess);
     if (!valid) {
       await message.react('❌');
+      return true;
+    }
+
+    // TODO: if we've already guessed this word, disallow
+
+    const curTime = new Date();
+
+    // if less than 3 seconds have passed since the last guess, don't allow it
+    if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
+      await message.react('⏱');
       return true;
     }
 
@@ -304,41 +318,77 @@ class Wordle {
     this.guesses.push(lineGuess);
     this.numAttempts++;
 
-    await message.reply({
-      files: await this.getAttachments()
-    })
+    await this.displayGraphics(message);
 
-    let content = '';
+    let description = '';
+
     let continueGame = true;
     if (guess === this.winnerWord) {
-      content = ` ${bold('You win!')}`;
       this.won = true;
       continueGame = false;
     } else if (this.numAttempts >= MAX_ATTEMPTS) 
     {
-      content = ` ${bold('You lose!')}\nThe word was \`${this.winnerWord}\``;
+      description = `The word was \`${this.winnerWord}\``;
       continueGame = false;
     }
 
     if (!continueGame && this.channel) {
       await this.saveToDb();
-
-      const stats = await this.getStatsForGuild(this.channel.guild.id);
-      if (stats) {
-        
-        content += `
-        **Total played:** ${stats.totalPlayed}
-        **Total won:** ${stats.totalWon / stats.totalPlayed * 100}%
-        **Longest win streak:** ${stats.maxWinStreak}
-        **Current win streak:** ${stats.currentWinStreak}
-        `;
-        // **Guess distribution:** Yeah I'm not plotting a graph right now`;
-      }
-      
-      await message.channel.send(content);
+      await this.printStats(this.won, description);
     }
-    
+
+    this.lastGuessTime = curTime;
     return continueGame;
+  }
+
+  async displayGraphics(message: Message|CommandInteraction) {
+    
+    await message.reply({
+      files: await this.getAttachments()
+    })
+  }
+
+  async printStats(didWin: boolean, description: string) {
+
+    if (!this.channel) {
+      return;
+    }
+
+    const stats = await this.getStatsForGuild(this.channel.guild.id);
+    if (!stats) {
+      return;
+    }
+
+    let bestGuess = -1;
+    for (let i = 0; i < this.guesses.length; i++) {
+      if (this.guesses[i].length > 0) {
+        bestGuess = i + 1;
+        break;
+      }
+    }
+      
+    const avgGuessAmt = stats.guessDistribution.reduce((a, b) => a + b, 0) / stats.guessDistribution.length;
+    const totalLosses = stats.totalPlayed - stats.totalWon;
+    const winPct = (stats.totalWon / stats.totalPlayed * 100).toFixed(2);
+  
+    const embed = new MessageEmbed();
+
+    if (this.won) {
+      embed.setTitle('You won!');
+      embed.setColor('#64AA6A');
+    } else {
+      embed.setTitle('You lost!');
+      embed.setColor('#ff0000');
+    }
+
+    description += `\n\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
+    description += `\n**Guess ratio**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
+    description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
+    embed.setDescription(description);
+    
+    await this.channel.send({
+      embeds: [embed]
+    });
   }
 
   async generateRandomWord(length: number) {
@@ -466,7 +516,9 @@ class Wordle {
     }
 
     svgContent += `</svg>`;
-    const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const buffer = await sharp(Buffer.from(svgContent)).toBuffer();
+
+    // padd with transparency to the right
     return buffer;
   }
 }
