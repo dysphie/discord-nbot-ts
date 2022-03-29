@@ -14,6 +14,13 @@ const BOARD_TILE_WIDTH = 32;
 const KB_BUTTON_HEIGHT = 20;
 const KB_BUTTON_WIDTH = 20;
 
+enum WordValidateResult {
+    Valid,
+    Invalid,
+    TooRecent,
+    BadLength
+}
+
 enum GuessStatus {
   Unknown,
   Absent,
@@ -65,7 +72,7 @@ class WordleManager {
 
   async handleInteraction(interaction: CommandInteraction): Promise<boolean> {
 
-    
+
     const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
     if (game) {
       await game.displayGraphics(interaction);
@@ -137,38 +144,65 @@ class Wordle {
 
   async getAttachments() {
     return [
-        {
-          attachment: await this.buildBoardSvg(),
-          name: 'board.png'
-        },
-        {
-          attachment: await this.createPreviewKeyboard(),
-          name: 'wordle_keyboard.png'
-        }
-      ];
+      {
+        attachment: await this.buildBoardSvg(),
+        name: 'board.png'
+      },
+      {
+        attachment: await this.createPreviewKeyboard(),
+        name: 'wordle_keyboard.png'
+      }
+    ];
   }
 
-  async validateWord(word: string): Promise<boolean> {
+  async validateWord(word: string): Promise<WordValidateResult> {
 
     if (word.length != this.winnerWord?.length) {
-      return false;
+      return WordValidateResult.BadLength;
     }
 
-    const db = getMongoDatabase();
-    if (!db) {
-      return false;
+    // Check that the word wasn't guessed recently
+    if (this.numAttempts === 0)
+    {
+      const isOriginal = await this.isOriginalWord(word);
+      if (!isOriginal) {
+        return WordValidateResult.TooRecent;
+      }
     }
 
-    const collection = db.collection('dictionary');
-    const entry = await collection.findOne({ w: word });
-    if (entry === null) {
-      return false;
+    // Check that the word exists
+    const collection = getMongoDatabase()?.collection('dictionary');
+    if (collection) {
+      const entry = await collection?.findOne({ w: word });
+      if (entry === null) {
+        return WordValidateResult.Invalid;
+      }
     }
-    return true;
+
+
+    return WordValidateResult.Valid;
   }
 
-  async saveToDb()
-  {
+  // Protection against people using the same starter words
+  async isOriginalWord(word: string): Promise<boolean> {
+
+    const recentWords = getMongoDatabase()?.collection('wordle.recent');
+    const result = await recentWords?.updateOne({
+      w: word,
+      d: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      g: this.channel?.guild.id
+    }, { $set: { w: word, d: new Date(), g: this.channel?.guild.id } }, { upsert: true });
+
+    if (result?.upsertedCount) {
+      console.log(`New word ${word} added to recent words`);
+      return true;
+    } else {
+      console.log(`Word ${word} already exists in recent words`);
+      return false;
+    }
+  }
+
+  async saveToDb() {
     const db = getMongoDatabase();
     if (!db || !this.channel) {
       return;
@@ -188,7 +222,7 @@ class Wordle {
     await collection.insertOne(game);
   }
 
-  async getStatsForGuild(guildId: string): Promise<GuildStats|null> {
+  async getStatsForGuild(guildId: string): Promise<GuildStats | null> {
     const db = getMongoDatabase();
     if (!db) {
       return null;
@@ -211,7 +245,7 @@ class Wordle {
     let currentStreak = 0;
     let longestStreak = 0;
     let resetOnce = false;
-    
+
     // iterate entries backwards
     for (let i = entries.length - 1; i >= 0; i--) {
       if (entries[i].won) {
@@ -258,31 +292,43 @@ class Wordle {
     return stats;
   }
 
-  async doGuess(message: Message) {
+  async doGuess(message: Message): Promise<boolean> {
     const guess = message.content.substring(1).toLowerCase();
 
-    const valid = await this.validateWord(guess);
-    if (!valid) {
-      await message.react('❌');
-      return true;
-    }
-
-    // TODO: if we've already guessed this word, disallow
-
-    const curTime = new Date();
-
+    const validResult = await this.validateWord(guess);
+  
     // if less than 3 seconds have passed since the last guess, don't allow it
+    const curTime = new Date();
     if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
       await message.react('⏱');
       return true;
     }
+
+    switch (validResult) {
+      case WordValidateResult.TooRecent:
+      {
+        await message.reply("❌ You've recently started a game with that word");
+        return true;
+      }
+      case WordValidateResult.BadLength, WordValidateResult.Invalid:
+      {
+        await message.react('❌');
+        return true;
+      }
+      case WordValidateResult.Valid:
+      {
+        break;
+      }
+    }
+
+    // TODO: disallow if we've already guessed this word
 
     this.playerHistory.push(message.author.id);
 
     const maxlen = this.winnerWord.length;
 
     const lineGuess = new Array(maxlen);
-    
+
     for (let i = 0; i < maxlen; i++) {
       lineGuess[i] = { letter: guess[i], status: GuessStatus.Unknown };
     }
@@ -326,8 +372,7 @@ class Wordle {
     if (guess === this.winnerWord) {
       this.won = true;
       continueGame = false;
-    } else if (this.numAttempts >= MAX_ATTEMPTS) 
-    {
+    } else if (this.numAttempts >= MAX_ATTEMPTS) {
       description = `The word was \`${this.winnerWord}\``;
       continueGame = false;
     }
@@ -341,8 +386,8 @@ class Wordle {
     return continueGame;
   }
 
-  async displayGraphics(message: Message|CommandInteraction) {
-    
+  async displayGraphics(message: Message | CommandInteraction) {
+
     await message.reply({
       files: await this.getAttachments()
     })
@@ -366,7 +411,7 @@ class Wordle {
         break;
       }
     }
-      
+
     let totalGuesses = 0;
     for (let i = 0; i < stats.guessDist.length; i++) {
       totalGuesses += stats.guessDist[i] * (i + 1);
@@ -376,7 +421,7 @@ class Wordle {
 
     const avgGuessAmt = totalGuesses / stats.totalPlayed;
     const winPct = (stats.totalWon / stats.totalPlayed * 100).toFixed(2);
-  
+
     const embed = new MessageEmbed();
 
     if (this.won) {
@@ -391,7 +436,7 @@ class Wordle {
     description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
     description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
     embed.setDescription(description);
-    
+
     await this.channel.send({
       embeds: [embed]
     });
@@ -426,7 +471,7 @@ class Wordle {
   async createPreviewKeyboard() {
 
     let maxWidth = 0;
-    const maxHeight =  3 * KB_BUTTON_HEIGHT + 2 * BOARD_TILE_GAP;
+    const maxHeight = 3 * KB_BUTTON_HEIGHT + 2 * BOARD_TILE_GAP;
 
     let svgContent = '';
 
