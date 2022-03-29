@@ -360,15 +360,14 @@ class Wordle {
     }
 
     let bestGuess = -1;
-    for (let i = 0; i < this.guesses.length; i++) {
-      if (this.guesses[i].length > 0) {
+    for (let i = 0; i < stats.guessDistribution.length; i++) {
+      if (stats.guessDistribution[i] > 0) {
         bestGuess = i + 1;
         break;
       }
     }
       
     const avgGuessAmt = stats.guessDistribution.reduce((a, b) => a + b, 0) / stats.guessDistribution.length;
-    const totalLosses = stats.totalPlayed - stats.totalWon;
     const winPct = (stats.totalWon / stats.totalPlayed * 100).toFixed(2);
   
     const embed = new MessageEmbed();
