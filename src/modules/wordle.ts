@@ -91,7 +91,7 @@ interface DbGame {
 interface GuildStats {
   totalPlayed: number;
   totalWon: number;
-  guessDistribution: Array<number>;
+  guessDist: Array<number>;
   maxWinStreak: number;
   currentWinStreak: number;
 }
@@ -249,7 +249,7 @@ class Wordle {
     const stats = {
       totalPlayed: numPlayed,
       totalWon: numWon,
-      guessDistribution: numAttempts,
+      guessDist: numAttempts,
       maxWinStreak: longestStreak,
       currentWinStreak: newestStreak
     }
@@ -360,14 +360,21 @@ class Wordle {
     }
 
     let bestGuess = -1;
-    for (let i = 0; i < stats.guessDistribution.length; i++) {
-      if (stats.guessDistribution[i] > 0) {
+    for (let i = 0; i < stats.guessDist.length; i++) {
+      if (stats.guessDist[i] > 0) {
         bestGuess = i + 1;
         break;
       }
     }
       
-    const avgGuessAmt = stats.guessDistribution.reduce((a, b) => a + b, 0) / stats.guessDistribution.length;
+    let totalGuesses = 0;
+    for (let i = 0; i < stats.guessDist.length; i++) {
+      totalGuesses += stats.guessDist[i] * (i + 1);
+    }
+
+    //const guessDist = `1st: ${stats.guessDist[0]} | 2nd: ${stats.guessDist[1]} | 3rd: ${stats.guessDist[2]} | 4th: ${stats.guessDist[3]} | 5th: ${stats.guessDist[4]} | 6th: ${stats.guessDist[5]}`;
+
+    const avgGuessAmt = totalGuesses / stats.totalPlayed;
     const winPct = (stats.totalWon / stats.totalPlayed * 100).toFixed(2);
   
     const embed = new MessageEmbed();
@@ -381,7 +388,7 @@ class Wordle {
     }
 
     description += `\n\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
-    description += `\n**Guess ratio**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
+    description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
     description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
     embed.setDescription(description);
     
