@@ -18,7 +18,8 @@ enum WordValidateResult {
     Valid,
     Invalid,
     TooRecent,
-    BadLength
+    BadLength,
+    AlreadyGuessed
 }
 
 enum GuessStatus {
@@ -158,7 +159,15 @@ class Wordle {
   async validateWord(word: string): Promise<WordValidateResult> {
 
     if (word.length != this.winnerWord?.length) {
+      //console.log(`Word ${word} is not the same length as the winner word`);
       return WordValidateResult.BadLength;
+    }
+
+    for (let i = 0; i < this.guesses.length; i++) {
+      const prevWord = this.guesses[i].map(g => g.letter).join('');
+      if (word === prevWord) {
+        return WordValidateResult.AlreadyGuessed;
+      }
     }
 
     // Check that the word wasn't guessed recently
@@ -194,10 +203,10 @@ class Wordle {
     }, { $set: { w: word, d: new Date(), g: this.channel?.guild.id } }, { upsert: true });
 
     if (result?.upsertedCount) {
-      console.log(`New word ${word} added to recent words`);
+      //console.log(`New word ${word} added to recent words`);
       return true;
     } else {
-      console.log(`Word ${word} already exists in recent words`);
+      //console.log(`Word ${word} already exists in recent words`);
       return false;
     }
   }
@@ -305,12 +314,18 @@ class Wordle {
     }
 
     switch (validResult) {
+      case WordValidateResult.AlreadyGuessed:
+      {
+        await message.reply("❌ You've already guessed that word");
+        return true;
+      }
       case WordValidateResult.TooRecent:
       {
         await message.reply("❌ You've recently started a game with that word");
         return true;
       }
-      case WordValidateResult.BadLength, WordValidateResult.Invalid:
+      case WordValidateResult.BadLength:
+      case WordValidateResult.Invalid:
       {
         await message.react('❌');
         return true;
