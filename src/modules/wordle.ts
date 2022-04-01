@@ -51,6 +51,32 @@ const keyboard: Array<Array<string>> = [
 const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
 const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
 
+const zeroPad = (num: number) => String(num).padStart(2, '0');
+
+const fmtTime = (ms: number) => {
+
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+
+  const s = seconds % 60;
+  const m = minutes % 60;
+  const h = hours % 60;
+
+  let str = '';
+  if (h > 0) {
+    str += `${h}h `;
+  }
+
+  if (m > 0) {
+    str += `${m}m `;
+  }
+
+  str += `${s}s`;
+  return str;
+}
+
+
 class WordleManager {
   games: Array<Wordle> = [];
 
@@ -94,6 +120,7 @@ interface DbGame {
   date: Date,
   won: boolean,
   guild: string
+  elapsed: number
 }
 
 interface GuildStats {
@@ -102,6 +129,7 @@ interface GuildStats {
   guessDist: Array<number>;
   maxWinStreak: number;
   currentWinStreak: number;
+  bestTime: number;
 }
 
 class Wordle {
@@ -113,9 +141,11 @@ class Wordle {
   keyboardColors: Map<string, GuessStatus>;
   numAttempts: number;
   won: boolean;
+  startTime: Date;
 
 
   constructor() {
+    this.startTime = new Date();
     this.lastGuessTime = null;
     this.channel = null;
     this.numAttempts = 0;
@@ -218,6 +248,7 @@ class Wordle {
     }
 
     const collection = db.collection('wordle');
+    const elapsed = new Date().getTime() - this.startTime.getTime();
 
     const game: DbGame = {
       word: this.winnerWord,
@@ -225,7 +256,8 @@ class Wordle {
       players: this.playerHistory,
       date: new Date(),
       won: this.won,
-      guild: this.channel.guild.id
+      guild: this.channel.guild.id,
+      elapsed: elapsed
     }
 
     await collection.insertOne(game);
@@ -286,6 +318,15 @@ class Wordle {
       //console.log(`in ${entries[i].guesses} attempts: ${numAttempts[entries[i].guesses]}`);
     }
 
+    // find entry with lowest 'bt'
+    let bestTime = Infinity;
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].elapsed < bestTime) {
+        bestTime = entries[i].elapsed;
+      }
+    }
+
+
     const numPlayed = entries.length;
     const numWon = entries.filter(e => e.won).length;
 
@@ -294,7 +335,8 @@ class Wordle {
       totalWon: numWon,
       guessDist: numAttempts,
       maxWinStreak: longestStreak,
-      currentWinStreak: newestStreak
+      currentWinStreak: newestStreak,
+      bestTime: bestTime
     }
 
     //console.log(stats);
@@ -446,8 +488,12 @@ class Wordle {
       embed.setTitle('You lost!');
       embed.setColor('#ff0000');
     }
+    
+    // get the elapsed time 
+    const elapsedTime = fmtTime(new Date().getTime() - this.startTime.getTime());
 
-    description += `\n\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
+    description += `\n\n**Elapsed**: \`${elapsedTime}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
+    description += `\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
     description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
     description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
     embed.setDescription(description);
