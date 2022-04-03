@@ -1,4 +1,4 @@
-import { Client, Intents } from "discord.js";
+import { Client, GuildMember, Intents } from "discord.js";
 import "dotenv/config";
 import animals from "./modules/animals";
 import emoter from "./modules/emoter";
@@ -14,6 +14,7 @@ import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
+import { spoiler } from "@discordjs/builders";
 
 // check that nbot_token is set
 
@@ -51,7 +52,11 @@ client.once("ready", async () => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-	if (!interaction.isCommand()) {
+	if (!interaction.isCommand() || !interaction.channel) {
+		return;
+	}
+
+	if (!(interaction.member instanceof GuildMember)) {
 		return;
 	}
 
@@ -72,10 +77,12 @@ client.on("interactionCreate", async (interaction) => {
 
 client.on("messageReactionAdd", async (reaction) => {
 	await starboard.handleReactionUpdate(reaction);
+	//await spoiler.handleReactionUpdate(reaction);
 });
 
 client.on("messageReactionRemove", async (reaction) => {
 	await starboard.handleReactionUpdate(reaction);
+	//await spoiler.handleReactionUpdate(reaction);
 });
 
 client.on("messageCreate", async (message) => {

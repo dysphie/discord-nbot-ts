@@ -356,34 +356,31 @@ class Wordle {
 
     const validResult = await this.validateWord(guess);
 
-    // if less than 3 seconds have passed since the last guess, don't allow it
-    const curTime = new Date();
-    if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
-      await message.react('⏱');
-      return true;
-    }
-
     switch (validResult) {
-      case WordValidateResult.AlreadyGuessed:
-        {
-          await message.reply("❌ You've already guessed that word");
-          return true;
-        }
-      case WordValidateResult.TooRecent:
-        {
-          await message.reply("❌ You've recently started a game with that word");
-          return true;
-        }
+      case WordValidateResult.AlreadyGuessed: {
+        await message.reply("❌ You've already guessed that word");
+        return true;
+      }
+      case WordValidateResult.TooRecent: {
+        await message.reply("❌ You've recently started a game with that word");
+        return true;
+      }
       case WordValidateResult.BadLength:
-      case WordValidateResult.Invalid:
-        {
-          await message.react('❌');
+      case WordValidateResult.Invalid: {
+        await message.react('❌');
+        return true;
+      }
+      case WordValidateResult.Valid: {
+
+        // if less than 3 seconds have passed since the last guess, don't allow it
+        const curTime = new Date();
+        if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
+          await message.react('⏱');
           return true;
         }
-      case WordValidateResult.Valid:
-        {
-          break;
-        }
+  
+        this.lastGuessTime = curTime;
+      }
     }
 
     // TODO: disallow if we've already guessed this word
@@ -447,7 +444,6 @@ class Wordle {
       await this.printStats(this.won, description);
     }
 
-    this.lastGuessTime = curTime;
     return continueGame;
   }
 
@@ -523,7 +519,7 @@ class Wordle {
       {
         $match: {
           l: length,
-          f: { $gt: 1500000 }
+          f: { $gt: 2000000 }
         }
       },
       { $sample: { size: 1 } }
