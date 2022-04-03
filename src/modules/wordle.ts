@@ -15,11 +15,11 @@ const KB_BUTTON_HEIGHT = 20;
 const KB_BUTTON_WIDTH = 20;
 
 enum WordValidateResult {
-    Valid,
-    Invalid,
-    TooRecent,
-    BadLength,
-    AlreadyGuessed
+  Valid,
+  Invalid,
+  TooRecent,
+  BadLength,
+  AlreadyGuessed
 }
 
 enum GuessStatus {
@@ -161,10 +161,19 @@ class Wordle {
     let wantedLen = interaction.options.getInteger('length');
     if (wantedLen === null) {
       wantedLen = 5;
+    } else if (wantedLen <= 3 || wantedLen > 12) {
+      await interaction.reply(`Word length must be between 5 and 12 characters.`);
+      return;
     }
 
     this.channel = interaction.channel as TextChannel;
     await this.generateRandomWord(wantedLen);
+
+    if (this.winnerWord === '') {
+      await interaction.reply('No words found with that length. Try again.');
+      return;
+    }
+
     console.log("Starting a new game of wordle with word " + this.winnerWord);
 
     await interaction.reply({
@@ -201,8 +210,7 @@ class Wordle {
     }
 
     // Check that the word wasn't guessed recently
-    if (this.numAttempts === 0)
-    {
+    if (this.numAttempts === 0) {
       const isOriginal = await this.isOriginalWord(word);
       if (!isOriginal) {
         return WordValidateResult.TooRecent;
@@ -321,7 +329,7 @@ class Wordle {
     // find entry with lowest 'bt'
     let bestTime = Infinity;
     for (let i = 0; i < entries.length; i++) {
-      if (entries[i].elapsed < bestTime) {
+      if (entries[i].won && entries[i].elapsed < bestTime) {
         bestTime = entries[i].elapsed;
       }
     }
@@ -347,7 +355,7 @@ class Wordle {
     const guess = message.content.substring(1).toLowerCase();
 
     const validResult = await this.validateWord(guess);
-  
+
     // if less than 3 seconds have passed since the last guess, don't allow it
     const curTime = new Date();
     if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
@@ -357,25 +365,25 @@ class Wordle {
 
     switch (validResult) {
       case WordValidateResult.AlreadyGuessed:
-      {
-        await message.reply("❌ You've already guessed that word");
-        return true;
-      }
+        {
+          await message.reply("❌ You've already guessed that word");
+          return true;
+        }
       case WordValidateResult.TooRecent:
-      {
-        await message.reply("❌ You've recently started a game with that word");
-        return true;
-      }
+        {
+          await message.reply("❌ You've recently started a game with that word");
+          return true;
+        }
       case WordValidateResult.BadLength:
       case WordValidateResult.Invalid:
-      {
-        await message.react('❌');
-        return true;
-      }
+        {
+          await message.react('❌');
+          return true;
+        }
       case WordValidateResult.Valid:
-      {
-        break;
-      }
+        {
+          break;
+        }
     }
 
     // TODO: disallow if we've already guessed this word
@@ -488,7 +496,7 @@ class Wordle {
       embed.setTitle('You lost!');
       embed.setColor('#ff0000');
     }
-    
+
     // get the elapsed time 
     const elapsedTime = fmtTime(new Date().getTime() - this.startTime.getTime());
 
@@ -512,7 +520,12 @@ class Wordle {
 
     const collection = db.collection('dictionary');
     const entry = await collection.aggregate([
-      { $match: { l: length } },
+      {
+        $match: {
+          l: length,
+          f: { $gt: 1500000 }
+        }
+      },
       { $sample: { size: 1 } }
     ]).toArray();
 
