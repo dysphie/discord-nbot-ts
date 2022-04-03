@@ -372,14 +372,20 @@ class Wordle {
       }
       case WordValidateResult.Valid: {
 
-        // if less than 3 seconds have passed since the last guess, don't allow it
-        const curTime = new Date();
-        if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
-          await message.react('⏱');
-          return true;
+        // apply cooldown if someone else guessed a word less than 3 seconds ago
+        // this is to avoid accidental guesses when the result has been updated
+        const lastPlayerId = this.playerHistory[this.playerHistory.length - 1];
+        if (lastPlayerId !== message.member?.id) 
+        {
+          // if less than 3 seconds have passed since the last guess, don't allow it
+          const curTime = new Date();
+          if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
+            await message.react('⏱');
+            return true;
+          }
+
+          this.lastGuessTime = curTime;
         }
-  
-        this.lastGuessTime = curTime;
       }
     }
 
