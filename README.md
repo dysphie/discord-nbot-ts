@@ -17,6 +17,14 @@ It's not field-tested, which means it will break if you try to break it. No supp
 
 
 ## Running
+
+- Environment variables
+	- Set `NBOT_DISCORD_TOKEN` to your bot's token
+	- Set `NBOT_OPENCAGE_API_KEY` to your OpenCage key
+	- Set `NBOT_MONGODB_URI` to your MongoDB's URI
+	- Set `NBOT_MONGODB_AES_KEY` to a random, secure string
+	- Set `NBOT_TOMORROW_API_KEY` to your Tomorrow API key
+
 - `node dist/bot` (you can use [Heroku](heroku.com)'s free tier)
 
 
