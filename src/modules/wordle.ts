@@ -1,8 +1,9 @@
-import { bold, inlineCode, userMention } from "@discordjs/builders";
-import axios from "axios";
-import { CommandInteraction, GuildMember, Message, MessageAttachment, MessageEmbed, TextChannel } from "discord.js";
+import { CommandInteraction, Message, MessageEmbed, TextChannel } from "discord.js";
 import sharp from "sharp";
 import { getMongoDatabase } from "./mongodb";
+
+const MIN_WINNER_WORD_RARITY = 1_000_000;
+const MIN_GUESS_WORD_RARITY = 150_000;
 
 const MAX_ATTEMPTS = 6;
 
@@ -220,7 +221,12 @@ class Wordle {
     // Check that the word exists
     const collection = getMongoDatabase()?.collection('dictionary');
     if (collection) {
-      const entry = await collection?.findOne({ w: word });
+      const entry = await collection?.findOne(
+        {
+          w: word, 
+          f: { $gt: MIN_GUESS_WORD_RARITY }
+        }
+      );
       if (entry === null) {
         return WordValidateResult.Invalid;
       }
@@ -375,8 +381,7 @@ class Wordle {
         // apply cooldown if someone else guessed a word less than 3 seconds ago
         // this is to avoid accidental guesses when the result has been updated
         const lastPlayerId = this.playerHistory[this.playerHistory.length - 1];
-        if (lastPlayerId !== message.member?.id) 
-        {
+        if (lastPlayerId !== message.member?.id) {
           // if less than 3 seconds have passed since the last guess, don't allow it
           const curTime = new Date();
           if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
@@ -525,7 +530,7 @@ class Wordle {
       {
         $match: {
           l: length,
-          f: { $gt: 2000000 }
+          f: { $gt: MIN_WINNER_WORD_RARITY }
         }
       },
       { $sample: { size: 1 } }
