@@ -3,6 +3,8 @@ This is my own personal bot, designed to exist in a single small guild with frie
 
 It's not field-tested, which means it will break if you try to break it. No support will be provided for it.
 
+Originally written in [Python](https://github.com/dysphie/discord-nbot), then ported over
+
 
 ## Requirements
 - A [Discord application](https://discord.com/developers/applications), of course
