@@ -46,7 +46,7 @@ It's not field-tested, which means it will break if you try to break it. No supp
   ![image](https://user-images.githubusercontent.com/11559683/161584668-1264abc2-44b1-447f-99fa-142390f58f94.png)
 
 - ### Yeller
-  Bot learns `ALL CAPS MESSAGES` and replies with them
+  Bot learns `ALL CAPS MESSAGES` and replies to them, with them
   ```
   user1: HEY WHAT'S GOING ON IN THIS ROOM
   bot: I DON'T KNOW
