@@ -72,7 +72,7 @@ class Emoter {
 				(emote) => emote.name === prefixed[i]
 			);
 			if (emote != null) {
-				message.content = message.content.replace(
+				message.content = message.content.replaceAll(
 					`$${prefixed[i]}`,
 					`${emote.toString()}`
 				);
@@ -96,7 +96,7 @@ class Emoter {
 						name,
 						emoterGuild
 					);
-					message.content = message.content.replace(
+					message.content = message.content.replaceAll(
 						`$${name}`,
 						`${emote.toString()}`
 					);
