@@ -52,28 +52,29 @@ const keyboard: Array<Array<string>> = [
 const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
 const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
 
-const zeroPad = (num: number) => String(num).padStart(2, '0');
+const pad = (n: string | number, z = 2) => ('00' + n).slice(-z);
 
-const fmtTime = (ms: number) => {
-
-  const seconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-
-  const s = seconds % 60;
-  const m = minutes % 60;
-  const h = hours % 60;
+const fmtTime = (miliseconds: number) => {
+  
+  const hours = miliseconds / 3.6e6 | 0;
+  const minutes = (miliseconds % 3.6e6) / 6e4 | 0;
+  const seconds = (miliseconds % 6e4) / 1000 | 0;
+  const mils = (miliseconds % 1000);
 
   let str = '';
-  if (h > 0) {
-    str += `${h}h `;
+
+  if (hours) {
+    str += `${hours}h `;
   }
 
-  if (m > 0) {
-    str += `${m}m `;
+  if (minutes) {
+    str += `${minutes}m `;
   }
 
-  str += `${s}s`;
+  if (seconds) {
+    str += `${seconds}.${pad(mils, 3)}s`;
+  }
+
   return str;
 }
 
@@ -177,10 +178,15 @@ class Wordle {
 
     console.log("Starting a new game of wordle with word " + this.winnerWord);
 
-    await interaction.reply({
+    const sent = await interaction.reply({
       files: await this.getAttachments(),
-      content: "A new game of wordle has started!"
+      content: "A new game of wordle has started!",
+      fetchReply: true
     });
+
+    if (sent) {
+      this.startTime = new Date();
+    }
   }
 
   async getAttachments() {
@@ -255,14 +261,13 @@ class Wordle {
     }
   }
 
-  async saveToDb() {
+  async saveToDb(elapsed: number) {
     const db = getMongoDatabase();
     if (!db || !this.channel) {
       return;
     }
 
     const collection = db.collection('wordle');
-    const elapsed = new Date().getTime() - this.startTime.getTime();
 
     const game: DbGame = {
       word: this.winnerWord,
@@ -451,8 +456,9 @@ class Wordle {
     }
 
     if (!continueGame && this.channel) {
-      await this.saveToDb();
-      await this.printStats(this.won, description);
+      const elapsed = new Date().getTime() - this.startTime.getTime();
+      await this.saveToDb(elapsed);
+      await this.printStats(elapsed, this.won, description);
     }
 
     return continueGame;
@@ -465,7 +471,7 @@ class Wordle {
     })
   }
 
-  async printStats(didWin: boolean, description: string) {
+  async printStats(elapsed: number, didWin: boolean, description: string) {
 
     if (!this.channel) {
       return;
@@ -505,9 +511,7 @@ class Wordle {
     }
 
     // get the elapsed time 
-    const elapsedTime = fmtTime(new Date().getTime() - this.startTime.getTime());
-
-    description += `\n\n**Elapsed**: \`${elapsedTime}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
+    description += `\n\n**Elapsed**: \`${fmtTime(elapsed)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
     description += `\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
     description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
     description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
