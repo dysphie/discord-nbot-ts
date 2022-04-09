@@ -14,7 +14,6 @@ import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
-import { spoiler } from "@discordjs/builders";
 
 // check that nbot_token is set
 

@@ -59,7 +59,10 @@ class Emoter {
 		// create list of words prefixed with '$' in message.content, don't include the '$'
 		// save non-prefixed words in a variable called nonPrefixedWords
 		const prefixed: string[] = [];
-		const words = message.content.split(" ");
+
+		// split by all whitespace
+		let words = message.content.split(/\s+/);
+		words = [...new Set(words)];
 
 		words.forEach((word) => {
 			if (word.startsWith("$")) {
