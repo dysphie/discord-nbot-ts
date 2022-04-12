@@ -14,6 +14,7 @@ import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
+import leagueban from "./modules/ban-league";
 
 // check that nbot_token is set
 
@@ -47,6 +48,12 @@ client.once("ready", async () => {
 	emoter.setEmoteGuild("937552002991403132");
 	starboard.setStarboardChannel("617539911528218634");
 	permathreader.recoverFromSleep(client);
+
+	// check every 5 minutes
+	setInterval(function(){
+		leagueban.checkBans(client);
+	}, 300000);
+
 	await registerCommands(client.user.id, token);
 });
 
