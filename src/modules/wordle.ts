@@ -512,9 +512,18 @@ class Wordle {
 
     // get the elapsed time 
     description += `\n\n**Elapsed**: \`${fmtTime(elapsed)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
+    if (elapsed == stats.bestTime) {
+      description += ' 🏅';
+    }
+
     description += `\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
     description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
+
     description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
+    if (stats.currentWinStreak == stats.maxWinStreak) {
+      description += ' 🏅';
+    }
+
     embed.setDescription(description);
 
     await this.channel.send({
