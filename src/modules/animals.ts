@@ -1,12 +1,10 @@
 import axios from "axios";
 import { CommandInteraction } from "discord.js";
+import { DatabaseModule } from "../module_mgr";
 
-class RandomAnimal {
-	constructor() {
-		console.log("RandomAnimal module loaded");
-	}
+class RandomAnimal extends DatabaseModule {
 
-	async handleCat(interaction: CommandInteraction) {
+	async commandCat(interaction: CommandInteraction) {
 		const url = "https://api.thecatapi.com/v1/images/search";
 		const resp = await axios.get(url);
 
@@ -21,7 +19,7 @@ class RandomAnimal {
 		interaction.reply(imgUrl);
 	}
 
-	async handleDog(interaction: CommandInteraction) {
+	async commandDog(interaction: CommandInteraction) {
 		const resp = await axios.get("https://dog.ceo/api/breeds/image/random");
 		if (resp.status !== 200) {
 			await interaction.reply(
@@ -34,7 +32,7 @@ class RandomAnimal {
 		interaction.reply(dogUrl);
 	}
 
-	async handleLizard(interaction: CommandInteraction) {
+	async commandLizard(interaction: CommandInteraction) {
 		const resp = await axios.get("https://nekos.life/api/v2/img/lizard");
 		if (resp.status !== 200) {
 			await interaction.reply(
@@ -47,17 +45,23 @@ class RandomAnimal {
 		interaction.reply(lizardUrl);
 	}
 
-	async handleInteraction(interaction: CommandInteraction) {
+	async commandAnimal(interaction: CommandInteraction) {
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("This command is disabled");
+			return;
+		}
+
 		const option = interaction.options.getString("species");
 		switch (option) {
 			case "dog":
-				await this.handleDog(interaction);
+				await this.commandDog(interaction);
 				break;
 			case "cat":
-				await this.handleCat(interaction);
+				await this.commandCat(interaction);
 				break;
 			case "lizard":
-				await this.handleLizard(interaction);
+				await this.commandLizard(interaction);
 				break;
 			default:
 				await interaction.reply(`Unknown animal ${option}`);
@@ -66,6 +70,6 @@ class RandomAnimal {
 	}
 }
 
-const animals = new RandomAnimal();
+const animals = new RandomAnimal('animals', 'Posts various random animals');
 
 export default animals;

@@ -5,8 +5,9 @@ import {
 	ThreadChannel,
 } from "discord.js";
 import config from "../config";
+import { DatabaseModule } from "../module_mgr";
 
-class Permathreader {
+class Permathreader extends DatabaseModule {
 	isPermathread(thread: ThreadChannel) {
 		return config.permathreads.includes(thread.id);
 	}
@@ -68,6 +69,6 @@ class Permathreader {
 	}
 }
 
-const permathreader = new Permathreader();
+const permathreader = new Permathreader('permathreads', 'Creation of threads that never expire');
 
 export default permathreader;

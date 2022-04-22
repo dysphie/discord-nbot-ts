@@ -10,13 +10,17 @@ import namer from "color-namer";
 import axios from "axios";
 import sharp from "sharp";
 import Vibrant from "node-vibrant";
+import { DatabaseModule } from "../module_mgr";
 
-class Namecolor {
-	constructor() {
-		console.log("Namecolor module loaded");
-	}
+class Namecolor extends DatabaseModule {
 
-	async handleInteraction(interaction: CommandInteraction) {
+	async commandNamecolor(interaction: CommandInteraction) {
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("This command is disabled");
+			return;
+		}
+
 		if (!interaction || !interaction.guild || !interaction.member) {
 			await interaction.reply(
 				"This command can only be used in a server."
@@ -59,7 +63,7 @@ class Namecolor {
 				await interaction.reply("Could not find a vibrant color in your profile picture.");
 				return;
 			}
-			hex = palette.Vibrant.getHex();
+			hex = palette.Vibrant.hex;
 		} 
 		else if (hex === 'random') {		
 			const letters = '0123456789ABCDEF';
@@ -87,6 +91,8 @@ class Namecolor {
 			return;
 		}
 
+		await this.removeOldColors(interaction.member, roles);
+
 		const colorName = namer(`#${hex}`).ntc[0].name;
 
 		const newRole = await interaction.guild.roles.create({
@@ -97,8 +103,7 @@ class Namecolor {
 			position: 0,
 			reason: "Requested name color",
 		});
-
-		this.removeOldColors(interaction.member, roles);
+		
 
 		await roles.add(newRole);
 		await interaction.reply(
@@ -106,18 +111,18 @@ class Namecolor {
 		);
 	}
 
-	removeOldColors(
+	async removeOldColors(
 		member: GuildMember | APIInteractionGuildMember,
 		roles: GuildMemberRoleManager
 	) {
 		for (const role of roles.cache) {
 			if (role[1].name.startsWith("🎨") && role[1].members.size <= 1) {
-				role[1].delete("Unused name color");
+				await role[1].delete("Unused name color");
 			}
 		}
 	}
 }
 
-const nameColorer = new Namecolor();
+const nameColorer = new Namecolor('namecolor-roles', 'Allows users to set their name color.');
 
 export default nameColorer;

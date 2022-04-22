@@ -6,22 +6,23 @@ import {
 	ThreadChannel,
 	CommandInteraction,
 	GuildEmoji,
+	GuildMember,
 } from "discord.js";
-import { getMongoDatabase } from "./mongodb";
-import { postAsUser } from "./utils";
-import { ObjectId } from "mongodb";
-import { Long } from "bson";
+import { getMongoDatabase } from "../mongodb";
+import { postAsUser } from "../utils";
+import { DatabaseModule } from "../module_mgr";
 
 const EMOTER_GUILD_ID = "719448049981849620";
+const GLOBAL_GUILD = '0';
 
 // create a cache that's limited to 100 items
 // const directLinkCache = new Map<string, string>();
 
-class Emoter {
+class Emoter extends DatabaseModule {
 	cacheGuildId: string;
 
-	constructor() {
-		console.log("Emoter module loaded");
+	constructor(name: string, description: string) {
+		super(name, description);
 		this.cacheGuildId = "";
 	}
 
@@ -29,13 +30,28 @@ class Emoter {
 		this.cacheGuildId = guildId;
 	}
 
+	async setupDatabaseIndexes() {
+		
+		const emoterCollection = getMongoDatabase()?.collection("emoter");
+		if (emoterCollection === undefined) {
+			return;
+		}
+
+		await emoterCollection.createIndex({ guild: 1, name: 1 }, { unique: true });
+	}
+
 	async handleMessage(message: Message): Promise<boolean> {
-		if (message == null) {
+		
+		if (message == null || message.guildId === null) {
 			return false;
 		}
 
-		const db = getMongoDatabase();
-		if (db == null) {
+		if (!this.isEnabled(message.guildId)) {
+			return false;
+		}
+
+		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		if (emotes === undefined) {
 			return false;
 		}
 
@@ -54,7 +70,6 @@ class Emoter {
 		}
 
 		let replaced = false;
-		const emotes = db.collection("emoter.emotes");
 
 		// create list of words prefixed with '$' in message.content, don't include the '$'
 		// save non-prefixed words in a variable called nonPrefixedWords
@@ -87,7 +102,10 @@ class Emoter {
 		// check if we have prefixed left
 		if (prefixed.length !== 0) {
 			// find emotes that match the words without the '$'
-			const cursor = emotes.find({ _id: { $in: prefixed } });
+			const cursor = emotes.find({ 
+				guild: { $in: [GLOBAL_GUILD, message.guildId] },
+				name: { $in: prefixed } 
+			});
 
 			for await (const doc of cursor) {
 				const url = doc.url;
@@ -120,11 +138,7 @@ class Emoter {
 		return replaced;
 	}
 
-	async tempEmoteFromURL(
-		url: string,
-		name: string,
-		guild: Guild
-	): Promise<GuildEmoji> {
+	async tempEmoteFromURL(url: string, name: string, guild: Guild): Promise<GuildEmoji> {
 		// Get the oldest emoji in cache, by oldest 'createdTimestamp'
 		const cacheSortedByOldest = guild.emojis.cache.sort((a, b) => {
 			return a.createdTimestamp - b.createdTimestamp;
@@ -146,21 +160,21 @@ class Emoter {
 		return uploadedEmote;
 	}
 
-	async handleRandomEmote(interaction: CommandInteraction): Promise<void> {
+	async commandRandom(interaction: CommandInteraction): Promise<void> {
 		const db = getMongoDatabase();
 		if (db == null) {
 			return;
 		}
 
 		if (interaction.guild === null) {
-			interaction.reply("This command can only be used in a guild.");
+			await interaction.reply("This command can only be used in a guild.");
 			return;
 		}
 
 		const emoterGuild =
 			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild == null) {
-			interaction.reply("This command is unavailable");
+			await interaction.reply("This command is unavailable");
 			return;
 		}
 
@@ -174,21 +188,21 @@ class Emoter {
 			const name = doc._id.toString();
 			const emote = await this.tempEmoteFromURL(url, name, emoterGuild);
 			if (emote) {
-				interaction.reply(`${emote.toString()}`);
+				await interaction.reply(`${emote.toString()}`);
 			}
 		}
 	}
 
-	async handleFindEmote(interaction: CommandInteraction) {
+	async commandFind(interaction: CommandInteraction) {
 		const keyword = interaction.options.getString("keyword");
 		if (keyword === null) {
-			interaction.reply("Please specify a keyword.");
+			await interaction.reply("Please specify a keyword.");
 			return;
 		}
 
 		const db = getMongoDatabase();
 		if (db == null) {
-			interaction.reply("Emote search not available at this time");
+			await interaction.reply("Emote search not available at this time");
 			return;
 		}
 
@@ -198,13 +212,13 @@ class Emoter {
 		const emotes = db.collection("emoter.emotes");
 		// find all emotes that match the keyword with a limit of 10
 		let emoteList = await emotes
-			.find({ _id: { $regex: `.*${safeKeyword}*.`, $options: "i" } })
+			.find({ name: { $regex: `.*${safeKeyword}*.`, $options: "i" } })
 			.toArray();
-		emoteList = matchSorter(emoteList, keyword, { keys: ["_id"] });
+		emoteList = matchSorter(emoteList, keyword, { keys: ["name"] });
 
 		let responseBody = "Top matches: ";
 		emoteList.forEach((emote) => {
-			const newLine = `[${emote._id}](<${emote.url}>) `;
+			const newLine = `[${emote.name}](<${emote.url}>) `;
 			// check if adding newLine to responseBody would go over 2000 characters
 			if (responseBody.length + newLine.length > 2000) {
 				return;
@@ -212,47 +226,74 @@ class Emoter {
 			responseBody += newLine;
 		});
 
-		interaction.reply({
+		await interaction.reply({
 			content: responseBody,
 			ephemeral: true,
 		});
 	}
 
-	async handleAddEmote(interaction: CommandInteraction) {
+	// TODO: Why can't we specify return as WithId<Document>|null?
+	async getDatabaseEmote(name: string, guildId: string) {
+
+		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		if (emotes === undefined) {
+			return null;
+		}
+
+		// find documents where 'guild' field is missing (global emote) or equal to guildId
+		const cursor = await emotes.find({
+			guild: { $in: [GLOBAL_GUILD, guildId] },
+			name: name,
+		}).toArray();
+		
+		const globalEmote = cursor.find((doc) => doc.guildId === null);
+		if (globalEmote !== undefined) {
+			return globalEmote;
+		}
+
+		const localEmote = cursor.find((doc) => doc.guildId === guildId);
+		if (localEmote !== undefined) {
+			return localEmote;
+		}
+
+		return null;
+	}
+
+	async commandAdd(interaction: CommandInteraction) {
+
+		if (interaction.guildId === null || !(interaction.member instanceof GuildMember)) {
+			await interaction.reply("This command can only be used in a guild.");
+			return;
+		}
+
 		const url = interaction.options.getString("url");
 		if (url === null) {
-			interaction.reply("Please specify a url.");
+			await interaction.reply("Please specify a url.");
 			return;
 		}
 
 		const name = interaction.options.getString("keyword");
 		if (name === null) {
-			interaction.reply("Please specify a keyword.");
+			await interaction.reply("Please specify a keyword.");
 			return;
 		}
 
-		const db = getMongoDatabase();
-		if (db == null) {
-			interaction.reply("Emote search not available at this time");
+		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		if (emotes === undefined) {
+			await interaction.reply("Emote search not available at this time");
 			return;
 		}
 
-		if (!interaction.member) {
-			interaction.reply("You must be in a guild to use this command.");
-			return;
-		}
-
-		const emotes = db.collection("emoter.emotes");
-		const emote = await emotes.findOne({ _id: name });
+		const emote = await this.getDatabaseEmote(name, interaction.guildId);
 		if (emote) {
-			interaction.reply("Emote already exists.");
+			await interaction.reply("Emote already exists.");
 			return;
 		}
 
 		const emoterGuild =
 			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild == null) {
-			interaction.reply("This command is unavailable");
+			await interaction.reply("This command is unavailable");
 			return;
 		}
 
@@ -260,7 +301,7 @@ class Emoter {
 		try {
 			uploadedEmote = await this.tempEmoteFromURL(url, name, emoterGuild);
 		} catch (e) {
-			interaction.reply(
+			await interaction.reply(
 				`This emote is not compatible with discord. ${e}`
 			);
 			return;
@@ -268,24 +309,25 @@ class Emoter {
 
 		if (uploadedEmote) {
 			await emotes.insertOne({
-				_id: name as unknown as ObjectId,
+				name: name,
 				url: uploadedEmote.url,
-				src: Long.fromString(interaction.member.user.id),
+				uploader: interaction.member.id,
+				guild: interaction.guildId
 			});
 
-			interaction.reply(
+			await interaction.reply(
 				`Added emote \`${name}\` ${uploadedEmote.toString()}`
 			);
 		} else {
-			interaction.reply("Failed to add emote.");
+			await interaction.reply("Failed to add emote.");
 		}
 	}
 
-	async handleTestEmote(interaction: CommandInteraction) {
-		const emoterGuild =
-			interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
-		if (emoterGuild == null) {
-			interaction.reply("This command is unavailable");
+	async commandTest(interaction: CommandInteraction) {
+
+		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
+		if (emoterGuild === undefined) {
+			await interaction.reply("This command is unavailable");
 			return;
 		}
 
@@ -294,21 +336,20 @@ class Emoter {
 		// find one in the database
 		const db = getMongoDatabase();
 		if (db == null) {
-			interaction.reply("Database unavailable");
+			await interaction.reply("Database unavailable");
 		} else {
 			const emotes = db.collection("emoter.emotes");
-			const cursor = emotes.find({ _id: keyword });
+			const cursor = emotes.find({ 
+				guild: { $in: [GLOBAL_GUILD, interaction.guildId] },
+				name: keyword 
+			});
 			const doc = await cursor.next();
 			if (doc) {
 				const url = doc.url;
 				const name = doc._id.toString();
-				const emote = await this.tempEmoteFromURL(
-					url,
-					name,
-					emoterGuild
-				);
+				const emote = await this.tempEmoteFromURL(url, name, emoterGuild);
 				if (emote) {
-					interaction.reply({
+					await interaction.reply({
 						ephemeral: true,
 						content: `${emote.toString()}`,
 					});
@@ -317,32 +358,79 @@ class Emoter {
 		}
 	}
 
-	async handleInteraction(interaction: CommandInteraction) {
+	async commandDisable(interaction: CommandInteraction) {
+
+		const app = await interaction.client.application?.fetch();
+    if (!app || interaction.user.id !== app.owner?.id) {
+      await interaction.reply('Only the bot owner can use this command');
+      return;
+    }
+
+		const keyword = interaction.options.getString("keyword");
+		if (keyword === null) {
+			await interaction.reply("Please specify a keyword.");
+			return;
+		}
+
+		const db = getMongoDatabase();
+		if (db == null) {
+			await interaction.reply("Emote search not available at this time");
+			return;
+		}
+
+		const emotes = db.collection("emoter.emotes");
+		await emotes.updateOne({ name: keyword },
+			{ $set: { disabled: true } });
+			
+		await interaction.reply(`Disabled emote \`$${keyword}\``);
+	}
+
+	async commandEmote(interaction: CommandInteraction) {
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("This command is disabled");
+			return;
+		}
+
 		const subCommand = interaction.options.getSubcommand();
 
-		// console.log('Got interaction to handle with subcommand ' + interaction.options.getSubcommand());
-		if (subCommand === "random") {
-			await this.handleRandomEmote(interaction);
-		} else if (subCommand === "edit") {
-			await interaction.reply({
-				content: "Not implemented yet",
-				ephemeral: true,
-			});
-		} else if (subCommand === "add") {
-			await this.handleAddEmote(interaction);
-		} else if (subCommand === "remove") {
-			await interaction.reply({
-				content: "Not implemented yet",
-				ephemeral: true,
-			});
-		} else if (subCommand === "test") {
-			await this.handleTestEmote(interaction);
-		} else if (subCommand === "find") {
-			await this.handleFindEmote(interaction);
+		// convert above conditiona to a switch statement
+		switch (subCommand) {
+			case "random": {
+				await this.commandRandom(interaction);
+				break;
+			}
+			case "remove":
+			case "edit": {
+				await interaction.reply({
+					content: "Not implemented yet",
+					ephemeral: true,
+				});
+				break;
+			}
+			case "add": {
+				await this.commandAdd(interaction);
+				break;
+			}
+
+			case "test": {
+				await this.commandTest(interaction);
+				break;
+			}
+			case "find": {
+				await this.commandFind(interaction);
+				break;
+			}
+			default: {
+				await interaction.reply({
+					content: "Invalid subcommand",
+					ephemeral: true,
+				});
+			}
 		}
 	}
 }
 
-const emoter = new Emoter();
+const emoter = new Emoter('emoter', "Allows sending of custom emotes without Nitro");
 
-export default emoter;
+export { emoter };

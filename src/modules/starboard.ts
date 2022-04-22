@@ -1,19 +1,54 @@
 import {
+	CommandInteraction,
 	MessageEmbed,
 	MessageReaction,
 	PartialMessageReaction,
 } from "discord.js";
-import { getMongoDatabase } from "./mongodb";
+import { DatabaseModule } from "../module_mgr";
+import { getMongoDatabase } from "../mongodb";
 
-class Starboard {
-	starboardChannelId = "";
+class Starboard extends DatabaseModule {
 
-	constructor() {
-		console.log("Starboard module loaded");
+
+	async setStarboardChannel(channelId: string, guildId: string) {
+
+		const starboardCol = getMongoDatabase()?.collection("starboard.channels");
+		if (starboardCol === undefined) {
+			return;
+		}
+		
+		await starboardCol.updateOne(
+			{ guild: guildId },
+			{ $set: { channel: channelId } },
+			{ upsert: true }
+		);
 	}
 
-	setStarboardChannel(channelId: string) {
-		this.starboardChannelId = channelId;
+	async getStarboardChannel(guildId: string | null) {
+		const db = getMongoDatabase();
+		if (!db) {
+			return null;
+		}
+
+		const starboardCol = db.collection("starboard.channels");
+		const doc = await starboardCol.findOne({ guild: guildId });
+		return doc?.channel;
+	}
+
+	async commandSetStarboardChannel(interaction: CommandInteraction) {
+		if (!interaction.guildId) {
+			await interaction.reply("This command can only be used in a server.");
+			return;
+		}
+
+		const channel = interaction.options.getChannel("channel");
+		if (channel === null) {
+			await interaction.reply("You must specify a channel");
+			return;
+		}
+
+		await this.setStarboardChannel(channel.id, interaction.guildId);
+		await interaction.reply(`Starboard channel set to ${channel.toString()}`);
 	}
 
 	async handleReactionUpdate(
@@ -33,9 +68,7 @@ class Starboard {
 		}
 
 		// check if starboard channel is available
-		const starboardChannel = reaction.message.guild?.channels.cache.get(
-			this.starboardChannelId
-		);
+		const starboardChannel = await this.getStarboardChannel(reaction.message.guildId);
 		if (!starboardChannel || starboardChannel.type !== "GUILD_TEXT") {
 			return;
 		}
@@ -50,7 +83,7 @@ class Starboard {
 
 		const msgId = reaction.message.id;
 
-		const doc = await starredCol.findOne({ msg_id: msgId });
+		const doc = await starredCol.findOne({ msg_id: msgId, guild: reaction.message.guildId });
 		if (doc) {
 			// check if message is still in starboard channel
 			const message = await starboardChannel.messages.fetch(doc.star_id);
@@ -58,7 +91,7 @@ class Starboard {
 				if (reaction.count < 1) {
 					// remove message from starboard
 					await message.delete();
-					await starredCol.deleteOne({ msg_id: msgId });
+					await starredCol.deleteOne({ msg_id: msgId, guild: reaction.message.guildId });
 					return;
 				}
 
@@ -85,17 +118,18 @@ class Starboard {
 				.setTimestamp(reaction.message.createdAt)
 				.setFooter({ text: `⭐ ${reaction.count}` });
 
-			// create objectID from string
 
 			const starred = await starboardChannel.send({ embeds: [embed] });
 			starredCol.insertOne({
 				msg_id: msgId,
 				star_id: starred.id,
+				guild: reaction.message.guildId
 			});
 		}
 	}
+
 }
 
-const starboard = new Starboard();
+const starboard = new Starboard('starboard', 'Star messages and have them appear in a starboard channel.');
 
 export default starboard;

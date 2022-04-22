@@ -1,19 +1,32 @@
 import { Message } from "discord.js";
-import { getMongoDatabase } from "./mongodb";
+import { getMongoDatabase } from "../mongodb";
 import crypto from "crypto-js";
+import { DatabaseModule } from "../module_mgr";
 
-class Yeller {
-	constructor() {
-		console.log("Yeller module loaded");
+class Yeller extends DatabaseModule {
+
+	constructor(name: string, description: string) 
+	{
+		super(name, description);
 		if (!process.env.NBOT_MONGODB_AES_KEY) {
 			console.log("NBOT_MONGODB_AES_KEY not set, yells will be ignored");
 		}
 	}
 
 	async handleMessage(message: Message) {
-		if (!process.env.NBOT_MONGODB_AES_KEY) {
+
+		if (message.guildId === null) {
 			return;
 		}
+		
+		if (!this.isEnabled(message.guildId)) {
+			return;
+		}
+
+		if (process.env.NBOT_MONGODB_AES_KEY === undefined) {
+			return;
+		}
+
 
 		if (!message.client.user?.id) {
 			return;
@@ -62,8 +75,10 @@ class Yeller {
 
 		if (shouldYell) {
 			const cursor = await collection
-				.aggregate([{ $sample: { size: 1 } }])
-				.toArray();
+				.aggregate([
+					{ $match: { guild: message.guildId } },
+					{ $sample: { size: 1 } }
+				]).toArray();
 
 			if (cursor.length !== 0) {
 				const doc = cursor[0];
@@ -92,6 +107,7 @@ class Yeller {
 			await collection.insertOne({
 				crypted: encrypted,
 				author: message.author.id,
+				guild: message.guildId,
 			});
 
 			//console.log(`Saving yell: ${message.content}`);
@@ -99,6 +115,6 @@ class Yeller {
 	}
 }
 
-const yeller = new Yeller();
+const yeller = new Yeller('yeller', 'Replies to all-caps messages with a previously sent one');
 
 export default yeller;

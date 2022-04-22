@@ -1,13 +1,14 @@
 import { GuildMember, Message, TextChannel, ThreadChannel } from "discord.js";
-import { postAsUser } from "./utils";
+import { DatabaseModule } from "../module_mgr";
+import { postAsUser } from "../utils";
 
-class MarkdownUrl
-{
-  constructor() {
-		console.log("MarkdownUrl module loaded");
-	}
-  
+class MarkdownUrl extends DatabaseModule {
+
 	async handleMessage(message: Message) {
+    if (!this.isEnabled(message.guildId)) {
+      return;
+    }
+    
     // Repost as the bot which can use markdown
     const member = message.member as GuildMember;
     const channel = message.channel as TextChannel | ThreadChannel;
@@ -17,6 +18,6 @@ class MarkdownUrl
   }
 }
 
-const markdownUrl = new MarkdownUrl();
+const markdownUrl = new MarkdownUrl('markdown-url', 'Reposts messages with markdown links as the bot');
 
 export default markdownUrl;

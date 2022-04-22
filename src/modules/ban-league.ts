@@ -1,12 +1,14 @@
 import { Client, Guild, GuildMember, TextChannel } from "discord.js"
+import { DatabaseModule } from "../module_mgr";
 
 
-class LeagueBan
+class LeagueBan extends DatabaseModule
 {
   warnedUsers: string[] = [];
   announceChannelId: string;
 
-  constructor() {
+  constructor(name: string, description: string) {
+    super(name, description);
     this.announceChannelId = '336213135193145344';
   }
 
@@ -15,6 +17,10 @@ class LeagueBan
     for (const guild of bot.guilds.cache) {
 
       if (!(guild instanceof Guild)) {
+        continue;
+      }
+
+      if (!this.isEnabled(guild.id)) {
         continue;
       }
 
@@ -57,6 +63,6 @@ class LeagueBan
   }
 }
 
-const leagueban = new LeagueBan();
+const leagueban = new LeagueBan('league-warn', 'Warns users for playing League of Legends for over 30 minutes');
 
 export default leagueban;

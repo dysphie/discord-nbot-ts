@@ -44,6 +44,10 @@ const wordle = new SlashCommandBuilder()
         option.setName('length')
             .setDescription('The length of the words to use')
             .setRequired(false))
+    .addStringOption(option => 
+        option.setName('starter_word')
+            .setDescription('The first word to guess')
+            .setRequired(false))
 
 const emoter = new SlashCommandBuilder()
 .setName('emoter')
@@ -85,6 +89,32 @@ const emoter = new SlashCommandBuilder()
     subcommand
         .setName('random')
         .setDescription('Posts a random emote to chat'))
+.addSubcommand(subcommand =>
+    subcommand
+        .setName('disable')
+        .setDescription('Disables an emote keyword')
+        .addStringOption(option => option.setName('keyword').setDescription('Emote keyword').setRequired(true)))        
+
+
+const moduler = new SlashCommandBuilder()
+.setName('module')
+.setDescription('Modules settings')
+.addSubcommand(subcommand =>
+    subcommand
+        .setName('list')
+        .setDescription('Lists all available modules and their status'))
+.addSubcommand(subcommand =>
+    subcommand
+        .setName('disable')
+        .setDescription('Disables a module')
+        .addStringOption(option => option.setName('name').setDescription('Module name')
+            .setRequired(true)))
+.addSubcommand(subcommand =>
+    subcommand
+        .setName('enable')
+        .setDescription('Enables a module')
+        .addStringOption(option => option.setName('name').setDescription('Module name')
+            .setRequired(true)))
 
 const commands = [
     weather.toJSON(),
@@ -92,7 +122,8 @@ const commands = [
     inspire.toJSON(),
     animal.toJSON(),
     emoter.toJSON(),
-    wordle.toJSON()
+    wordle.toJSON(),
+    moduler.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

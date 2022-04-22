@@ -1,6 +1,6 @@
 import axios from "axios";
 import { GuildMember, TextChannel, ThreadChannel } from "discord.js";
-import webhookManager from "./utils/webhook_mgr";
+import webhookManager from "./modules/utils/webhook_mgr";
 
 const INVISIBLE_CHAR = "\u17B5";
 

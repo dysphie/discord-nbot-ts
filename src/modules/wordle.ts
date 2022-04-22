@@ -1,6 +1,7 @@
 import { CommandInteraction, Message, MessageEmbed, TextChannel } from "discord.js";
 import sharp from "sharp";
-import { getMongoDatabase } from "./mongodb";
+import { DatabaseModule } from "../module_mgr";
+import { getMongoDatabase } from "../mongodb";
 
 const MIN_WINNER_WORD_RARITY = 1_000_000;
 const MIN_GUESS_WORD_RARITY = 150_000;
@@ -47,10 +48,8 @@ const keyboard: Array<Array<string>> = [
   ["z", "x", "c", "v", "b", "n", "m"]
 ]
 
-
-
-const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
-const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
+// const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
+// const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
 
 const pad = (n: string | number, z = 2) => ('00' + n).slice(-z);
 
@@ -79,10 +78,15 @@ const fmtTime = (miliseconds: number) => {
 }
 
 
-class WordleManager {
+class WordleManager extends DatabaseModule {
   games: Array<Wordle> = [];
 
   async handleMessage(message: Message): Promise<boolean> {
+
+    if (!this.isEnabled(message.guildId)) {
+			return false;
+		}
+
     if (!message.content.startsWith(">")) {
       return false;
     }
@@ -101,6 +105,9 @@ class WordleManager {
 
   async handleInteraction(interaction: CommandInteraction): Promise<boolean> {
 
+    if (!this.isEnabled(interaction.guildId)) {
+			return false;
+		}
 
     const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
     if (game) {
@@ -668,6 +675,6 @@ class Wordle {
   }
 }
 
-const wordle = new WordleManager();
+const wordle = new WordleManager('wordle', 'Play games of Wordle');
 
 export default wordle;

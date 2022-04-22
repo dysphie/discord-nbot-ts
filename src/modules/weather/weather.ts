@@ -1,14 +1,16 @@
 import { CommandInteraction, MessageEmbed } from "discord.js";
 import axios from "axios";
 import getWeatherCodeDescription from "./weather_codes";
-import { getGeodataForLocation } from "../utils";
-import { getMongoDatabase } from "../mongodb";
+import { getGeodataForLocation } from "../../utils";
+import { getMongoDatabase } from "../../mongodb";
 import { Long } from "mongodb";
+import { DatabaseModule } from "../../module_mgr";
 
-class Weather {
+class Weather extends DatabaseModule {
 	guildId: string;
 
-	constructor() {
+	constructor(name: string, description: string) {
+		super(name, description);
 		this.guildId = "";
 
 		if (!process.env.NBOT_TOMORROW_API_KEY) {
@@ -24,8 +26,6 @@ class Weather {
 			);
 			return;
 		}
-
-		console.log("Weather module loaded");
 	}
 
 	setAssetGuild(guildId: string) {
@@ -33,7 +33,13 @@ class Weather {
 		this.guildId = guildId;
 	}
 
-	async handleInteraction(interaction: CommandInteraction) {
+	async commandWeather(interaction: CommandInteraction) {
+
+		if (!this.isEnabled(interaction.guildId)) {
+			interaction.reply("This command is disabled");
+			return;
+		}
+
 		if (!process.env.NBOT_TOMORROW_API_KEY) {
 			await interaction.reply("Weather is not available at this time");
 			return;
@@ -274,6 +280,6 @@ class Weather {
 	}
 }
 
-const weather = new Weather();
+const weather = new Weather('weather', 'Posts weather information');
 
 export default weather;

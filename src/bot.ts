@@ -1,9 +1,9 @@
-import { Client, GuildMember, Intents } from "discord.js";
+import { Client, ClientOptions, GuildMember, Intents } from "discord.js";
 import "dotenv/config";
 import animals from "./modules/animals";
-import emoter from "./modules/emoter";
+import { emoter } from "./modules/emoter";
 import inspirer from "./modules/inspoquote";
-import { initMongoDatabase } from "./modules/mongodb";
+import { initMongoDatabase } from "./mongodb";
 import nameColorer from "./modules/namecolor";
 import adblock from "./modules/patchbot-adblock";
 import permathreader from "./modules/permathreads";
@@ -15,16 +15,37 @@ import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
 import leagueban from "./modules/ban-league";
-
-// check that nbot_token is set
+import { DatabaseModule, ModuleManager } from "./module_mgr";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
 	throw new Error("NBOT_DISCORD_TOKEN is not set");
 }
 
-initMongoDatabase();
-const client = new Client({
+class ModuleBot extends Client {
+
+	moduleMgr: ModuleManager;
+
+	constructor(options: ClientOptions) {
+		super(options);
+
+		this.moduleMgr = new ModuleManager();
+		this.moduleMgr.registerModule(yeller);
+		this.moduleMgr.registerModule(markdownUrl);
+		this.moduleMgr.registerModule(leagueban);
+		this.moduleMgr.registerModule(wordle);
+		this.moduleMgr.registerModule(weather);
+		this.moduleMgr.registerModule(animals);
+		this.moduleMgr.registerModule(emoter);
+		this.moduleMgr.registerModule(inspirer);
+		this.moduleMgr.registerModule(nameColorer);
+		this.moduleMgr.registerModule(adblock);
+		this.moduleMgr.registerModule(permathreader);
+		this.moduleMgr.registerModule(starboard);
+	}
+}
+
+const client = new ModuleBot({
 	intents: [
 		Intents.FLAGS.GUILDS,
 		Intents.FLAGS.GUILD_MESSAGES,
@@ -42,11 +63,19 @@ client.once("ready", async () => {
 		throw new Error("Client user is null");
 	}
 
+	await initMongoDatabase();
+
+	client.moduleMgr.modules.forEach(async (module: DatabaseModule) => {
+		await module.cacheDatabaseData();
+	});
+
 	console.log(`Connected to Discord as ${client.user.tag}`);
 
+	await emoter.setupDatabaseIndexes();
+	
+	// TODO: Move to config
 	weather.setAssetGuild("759525750201909319");
 	emoter.setEmoteGuild("937552002991403132");
-	starboard.setStarboardChannel("617539911528218634");
 	permathreader.recoverFromSleep(client);
 
 	// check every 5 minutes
@@ -66,29 +95,43 @@ client.on("interactionCreate", async (interaction) => {
 		return;
 	}
 
-	if (interaction.commandName === "weather") {
-		await weather.handleInteraction(interaction);
-	} else if (interaction.commandName === "namecolor") {
-		await nameColorer.handleInteraction(interaction);
-	} else if (interaction.commandName === "inspire") {
-		await inspirer.handleInteraction(interaction);
-	} else if (interaction.commandName == "animal") {
-		await animals.handleInteraction(interaction);
-	} else if (interaction.commandName == "emoter") {
-		await emoter.handleInteraction(interaction);
-	} else if (interaction.commandName === "wordle") {
-		await wordle.handleInteraction(interaction);
+	switch (interaction.commandName) {
+		case "weather": {
+			weather.commandWeather(interaction);
+			break;
+		}
+		case "emoter": {
+			emoter.commandEmote(interaction);
+			break;
+		}
+		case "inspire": {
+			inspirer.commandInspire(interaction);
+			break;
+		}
+		case "namecolor": {
+			nameColorer.commandNamecolor(interaction);
+			break;
+		}
+		case "animal": {
+			animals.commandAnimal(interaction);
+			break;
+		}
+		case "wordle": {
+			wordle.handleInteraction(interaction);
+			break;
+		}
+		case "module": {
+			await client.moduleMgr.commandModule(interaction);
+		}
 	}
 });
 
 client.on("messageReactionAdd", async (reaction) => {
 	await starboard.handleReactionUpdate(reaction);
-	//await spoiler.handleReactionUpdate(reaction);
 });
 
 client.on("messageReactionRemove", async (reaction) => {
 	await starboard.handleReactionUpdate(reaction);
-	//await spoiler.handleReactionUpdate(reaction);
 });
 
 client.on("messageCreate", async (message) => {

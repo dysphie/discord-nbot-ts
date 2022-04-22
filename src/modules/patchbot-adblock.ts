@@ -1,10 +1,10 @@
 import { Message, MessageEmbed, TextChannel, ThreadChannel } from "discord.js";
 import config from "../config";
+import { DatabaseModule } from "../module_mgr";
 
-class PatchBotAdBlock {
-	constructor() {
-		console.log("PatchBotAdBlock module loaded");
-	}
+class PatchBotAdBlock extends DatabaseModule {
+
+	
 
 	async handleMessage(message: Message) {
 		if (
@@ -12,6 +12,10 @@ class PatchBotAdBlock {
 			message.author.username !== "PatchBot" ||
 			message.embeds.length === 0
 		) {
+			return;
+		}
+
+		if (!this.isEnabled(message.guildId)) {
 			return;
 		}
 
@@ -53,6 +57,6 @@ class PatchBotAdBlock {
 	}
 }
 
-const adblock = new PatchBotAdBlock();
+const adblock = new PatchBotAdBlock('patchbot-adblock', 'Blocks PatchBot\'s adverts and redirects updates to the correct channel');
 
 export default adblock;
