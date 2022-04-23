@@ -40,7 +40,7 @@ class Emoter extends DatabaseModule {
 
 	async setupDatabaseIndexes() {
 		
-		const emoterCollection = getMongoDatabase()?.collection("emoter.emotes");
+		const emoterCollection = getMongoDatabase()?.collection("emoter.emotes2");
 		if (emoterCollection === undefined) {
 			return;
 		}
@@ -58,7 +58,7 @@ class Emoter extends DatabaseModule {
 			return false;
 		}
 
-		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		const emotes = getMongoDatabase()?.collection("emoter.emotes2");
 		if (emotes === undefined) {
 			return false;
 		}
@@ -186,7 +186,7 @@ class Emoter extends DatabaseModule {
 			return;
 		}
 
-		const emotes = db.collection("emoter.emotes");
+		const emotes = db.collection("emoter.emotes2");
 
 		// get random emote
 		const cursor = emotes.aggregate([{ $sample: { size: 1 } }]);
@@ -217,7 +217,7 @@ class Emoter extends DatabaseModule {
 		const safeKeyword = keyword.replace(/[^a-zA-Z0-9]/g, "");
 		console.log(`Gonna search for ${safeKeyword}`);
 
-		const emotes = db.collection("emoter.emotes");
+		const emotes = db.collection("emoter.emotes2");
 		// find all emotes that match the keyword with a limit of 10
 		let emoteList = await emotes
 			.find({ name: { $regex: `.*${safeKeyword}*.`, $options: "i" } })
@@ -243,7 +243,7 @@ class Emoter extends DatabaseModule {
 	// TODO: Why can't we specify return as WithId<Document>|null?
 	async getDatabaseEmote(name: string, guildId: string) {
 
-		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		const emotes = getMongoDatabase()?.collection("emoter.emotes2");
 		if (emotes === undefined) {
 			return null;
 		}
@@ -286,7 +286,7 @@ class Emoter extends DatabaseModule {
 			return;
 		}
 
-		const emotes = getMongoDatabase()?.collection("emoter.emotes");
+		const emotes = getMongoDatabase()?.collection("emoter.emotes2");
 		if (emotes === undefined) {
 			await interaction.reply("Emote search not available at this time");
 			return;
@@ -346,7 +346,7 @@ class Emoter extends DatabaseModule {
 		if (db == null) {
 			await interaction.reply("Database unavailable");
 		} else {
-			const emotes = db.collection("emoter.emotes");
+			const emotes = db.collection("emoter.emotes2");
 			const cursor = emotes.find({ 
 				guild: { $in: [GLOBAL_GUILD, interaction.guildId] },
 				name: keyword 
@@ -386,7 +386,7 @@ class Emoter extends DatabaseModule {
 			return;
 		}
 
-		const emotes = db.collection("emoter.emotes");
+		const emotes = db.collection("emoter.emotes2");
 		await emotes.updateOne({ name: keyword },
 			{ $set: { disabled: true } });
 			
