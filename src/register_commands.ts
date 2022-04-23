@@ -44,10 +44,10 @@ const wordle = new SlashCommandBuilder()
         option.setName('length')
             .setDescription('The length of the words to use')
             .setRequired(false))
-    .addStringOption(option => 
-        option.setName('starter_word')
-            .setDescription('The first word to guess')
-            .setRequired(false))
+    // .addStringOption(option => 
+    //     option.setName('starter_word')
+    //         .setDescription('The first word to guess')
+    //         .setRequired(false))
 
 const emoter = new SlashCommandBuilder()
 .setName('emoter')
