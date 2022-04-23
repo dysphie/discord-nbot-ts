@@ -117,7 +117,7 @@ class Emoter extends DatabaseModule {
 
 			for await (const doc of cursor) {
 				const url = doc.url;
-				const name = doc._id.toString();
+				const name = doc.name.toString();
 
 				try {
 					const emote = await this.tempEmoteFromURL(
@@ -193,7 +193,7 @@ class Emoter extends DatabaseModule {
 		const doc = await cursor.next();
 		if (doc) {
 			const url = doc.url;
-			const name = doc._id.toString();
+			const name = doc.name.toString();
 			const emote = await this.tempEmoteFromURL(url, name, emoterGuild);
 			if (emote) {
 				await interaction.reply(`${emote.toString()}`);
@@ -354,7 +354,7 @@ class Emoter extends DatabaseModule {
 			const doc = await cursor.next();
 			if (doc) {
 				const url = doc.url;
-				const name = doc._id.toString();
+				const name = doc.name.toString();
 				const emote = await this.tempEmoteFromURL(url, name, emoterGuild);
 				if (emote) {
 					await interaction.reply({
