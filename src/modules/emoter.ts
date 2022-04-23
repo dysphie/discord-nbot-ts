@@ -18,6 +18,14 @@ const GLOBAL_GUILD = '0';
 // create a cache that's limited to 100 items
 // const directLinkCache = new Map<string, string>();
 
+interface DbEmote {
+	name: string;
+	guild: string;
+	uploader: string;
+	url: string;
+	createdAt: Date;
+}
+
 class Emoter extends DatabaseModule {
 	cacheGuildId: string;
 
@@ -32,7 +40,7 @@ class Emoter extends DatabaseModule {
 
 	async setupDatabaseIndexes() {
 		
-		const emoterCollection = getMongoDatabase()?.collection("emoter");
+		const emoterCollection = getMongoDatabase()?.collection("emoter.emotes");
 		if (emoterCollection === undefined) {
 			return;
 		}
@@ -433,4 +441,4 @@ class Emoter extends DatabaseModule {
 
 const emoter = new Emoter('emoter', "Allows sending of custom emotes without Nitro");
 
-export { emoter };
+export { emoter, DbEmote };
