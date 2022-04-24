@@ -122,6 +122,11 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		case "module": {
 			await client.moduleMgr.commandModule(interaction);
+			break
+		}
+		case "starboard": {
+			await starboard.commandSetStarboardChannel(interaction);
+			break
 		}
 	}
 });

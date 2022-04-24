@@ -37,6 +37,15 @@ const inspire = new SlashCommandBuilder()
     .setName('inspire')
     .setDescription('Retrieves a random inspirational quote')
 
+const starboard = new SlashCommandBuilder()
+    .setName('starboard')
+    .setDescription('Sets the starboard channel')
+    .addChannelOption(option =>
+        option.setName('channel')
+            .setDescription('The channel to set as the starboard channel')
+            .setRequired(true))
+
+
 const wordle = new SlashCommandBuilder()
     .setName('wordle')
     .setDescription('Starts a game of wordle')
@@ -124,6 +133,7 @@ const commands = [
     emoter.toJSON(),
     wordle.toJSON(),
     moduler.toJSON(),
+    starboard.toJSON()
 ];
 
 const registerCommands = async (clientId: string, token: string) => {
