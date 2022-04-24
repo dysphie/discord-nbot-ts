@@ -3,6 +3,7 @@ import {
 	MessageEmbed,
 	MessageReaction,
 	PartialMessageReaction,
+	TextChannel,
 } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
@@ -24,7 +25,7 @@ class Starboard extends DatabaseModule {
 		);
 	}
 
-	async getStarboardChannel(guildId: string | null) {
+	async getStarboardChannelId(guildId: string | null): Promise<string|null> {
 		const db = getMongoDatabase();
 		if (!db) {
 			return null;
@@ -76,8 +77,13 @@ class Starboard extends DatabaseModule {
 		}
 
 		// check if starboard channel is available
-		const starboardChannel = await this.getStarboardChannel(reaction.message.guildId);
-		if (starboardChannel === null) {
+		const starboardChannelId = await this.getStarboardChannelId(reaction.message.guildId);
+		if (starboardChannelId === null) {
+			return;
+		}
+
+		const starboardChannel = reaction.message.guild?.channels.cache.get(starboardChannelId);
+		if (starboardChannel === undefined || !(starboardChannel instanceof TextChannel)) {
 			return;
 		}
 
