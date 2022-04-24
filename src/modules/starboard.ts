@@ -36,8 +36,14 @@ class Starboard extends DatabaseModule {
 	}
 
 	async commandSetStarboardChannel(interaction: CommandInteraction) {
+
 		if (!interaction.guildId) {
 			await interaction.reply("This command can only be used in a server.");
+			return;
+		}
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("Starboard is not enabled in this server.");
 			return;
 		}
 
@@ -51,9 +57,7 @@ class Starboard extends DatabaseModule {
 		await interaction.reply(`Starboard channel set to ${channel.toString()}`);
 	}
 
-	async handleReactionUpdate(
-		reaction: MessageReaction | PartialMessageReaction
-	) {
+	async handleReactionUpdate(reaction: MessageReaction | PartialMessageReaction) {
 		if (reaction.partial) {
 			reaction = await reaction.fetch();
 		}
@@ -64,6 +68,10 @@ class Starboard extends DatabaseModule {
 
 		// check if reaction is a star or reaction count is above 3
 		if (reaction.emoji.name !== "⭐") {
+			return;
+		}
+
+		if (!this.isEnabled(reaction.message.guildId)) {
 			return;
 		}
 
