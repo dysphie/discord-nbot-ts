@@ -77,17 +77,14 @@ class Starboard extends DatabaseModule {
 
 		// check if starboard channel is available
 		const starboardChannel = await this.getStarboardChannel(reaction.message.guildId);
-		if (!starboardChannel || starboardChannel.type !== "GUILD_TEXT") {
+		if (starboardChannel === null) {
 			return;
 		}
 
-		// check if we have an existing starred message for this message id
-		const db = getMongoDatabase();
-		if (!db) {
+		const starredCol = getMongoDatabase()?.collection("starboard.starred");
+		if (starredCol === undefined) {
 			return;
 		}
-
-		const starredCol = db.collection("starboard.starred");
 
 		const msgId = reaction.message.id;
 
