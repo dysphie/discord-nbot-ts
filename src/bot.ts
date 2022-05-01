@@ -129,7 +129,11 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		case "starboard": {
 			await starboard.commandSetStarboardChannel(interaction);
-			break
+			break;
+		}
+		case "reminder": {
+			await reminder.commandRemind(interaction);
+			break;
 		}
 	}
 });
