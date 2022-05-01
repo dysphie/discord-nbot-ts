@@ -90,6 +90,8 @@ class Reminder extends DatabaseModule
       message: message,
       time: Date.now() + seconds * 1000,
     });
+
+    await interaction.reply(`I will remind you to ${message} in <t:${seconds}:R>`);
   }
 }
 

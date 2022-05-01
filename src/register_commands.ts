@@ -35,6 +35,10 @@ const namecolor = new SlashCommandBuilder()
 const reminder = new SlashCommandBuilder()
 .setName('reminder')
 .setDescription('Reminds you of something in the future')
+.addStringOption(option =>
+    option.setName('message')
+        .setDescription('Message to remind you of')
+        .setRequired(true))
 .addIntegerOption(option =>
     option.setName('days')
         .setDescription('Days in the future')
@@ -47,10 +51,7 @@ const reminder = new SlashCommandBuilder()
     option.setName('minutes')
         .setDescription('Minutes in the future')
         .setRequired(false))
-.addStringOption(option =>
-    option.setName('message')
-        .setDescription('Message to remind you of')
-        .setRequired(true))
+
 
 
                     
