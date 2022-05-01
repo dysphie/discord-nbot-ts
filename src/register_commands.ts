@@ -32,7 +32,28 @@ const namecolor = new SlashCommandBuilder()
             .setDescription('Hex code for the color')
             .setRequired(true))
 
+const reminder = new SlashCommandBuilder()
+.setName('reminder')
+.setDescription('Reminds you of something in the future')
+.addIntegerOption(option =>
+    option.setName('days')
+        .setDescription('Days in the future')
+        .setRequired(false))
+.addIntegerOption(option =>
+    option.setName('hours')
+        .setDescription('Hours in the future')
+        .setRequired(false))
+.addIntegerOption(option =>
+    option.setName('minutes')
+        .setDescription('Minutes in the future')
+        .setRequired(false))
+.addStringOption(option =>
+    option.setName('message')
+        .setDescription('Message to remind you of')
+        .setRequired(true))
 
+
+                    
 const inspire = new SlashCommandBuilder()
     .setName('inspire')
     .setDescription('Retrieves a random inspirational quote')
@@ -125,6 +146,9 @@ const moduler = new SlashCommandBuilder()
         .addStringOption(option => option.setName('name').setDescription('Module name')
             .setRequired(true)))
 
+
+
+
 const commands = [
     weather.toJSON(),
     namecolor.toJSON(),
@@ -133,7 +157,8 @@ const commands = [
     emoter.toJSON(),
     wordle.toJSON(),
     moduler.toJSON(),
-    starboard.toJSON()
+    starboard.toJSON(),
+    reminder.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

@@ -16,6 +16,7 @@ import registerCommands from "./register_commands";
 import wordle from "./modules/wordle";
 import leagueban from "./modules/ban-league";
 import { DatabaseModule, ModuleManager } from "./module_mgr";
+import reminder from "./modules/remindme";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -42,6 +43,7 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(adblock);
 		this.moduleMgr.registerModule(permathreader);
 		this.moduleMgr.registerModule(starboard);
+		this.moduleMgr.registerModule(reminder);
 	}
 }
 
@@ -77,6 +79,7 @@ client.once("ready", async () => {
 	weather.setAssetGuild("759525750201909319");
 	emoter.setEmoteGuild("937552002991403132");
 	permathreader.recoverFromSleep(client);
+	reminder.beginRepeatingTask(client);
 
 	// check every 5 minutes
 	setInterval(function(){
