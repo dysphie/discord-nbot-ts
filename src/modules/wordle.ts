@@ -170,8 +170,8 @@ class Wordle {
     let wantedLen = interaction.options.getInteger('length');
     if (wantedLen === null) {
       wantedLen = 5;
-    } else if (wantedLen <= 3 || wantedLen > 12) {
-      await interaction.reply(`Word length must be between 5 and 12 characters.`);
+    } else if (wantedLen < 3 || wantedLen > 15) {
+      await interaction.reply(`Word length must be between 3 and 15 characters.`);
       return;
     }
 

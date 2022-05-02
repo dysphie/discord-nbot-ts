@@ -83,12 +83,15 @@ class Reminder extends DatabaseModule
       return;
     }
 
+	const remindIn = new Date();
+	remindIn.setSeconds(remindIn.getSeconds() + seconds);
+
     await reminders.insertOne({
       guild_id: interaction.guildId,
       channel_id: interaction.channelId,
       user_id: interaction.member.id,
       message: message,
-      time: Date.now() + seconds * 1000,
+      time: remindIn
     });
 
     await interaction.reply(`I will remind you to ${message} in <t:${seconds}:R>`);
