@@ -39,15 +39,15 @@ const reminder = new SlashCommandBuilder()
     option.setName('message')
         .setDescription('Message to remind you of')
         .setRequired(true))
-.addIntegerOption(option =>
+.addNumberOption(option =>
     option.setName('days')
         .setDescription('Days in the future')
         .setRequired(false))
-.addIntegerOption(option =>
+.addNumberOption(option =>
     option.setName('hours')
         .setDescription('Hours in the future')
         .setRequired(false))
-.addIntegerOption(option =>
+.addNumberOption(option =>
     option.setName('minutes')
         .setDescription('Minutes in the future')
         .setRequired(false))
