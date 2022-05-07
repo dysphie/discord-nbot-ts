@@ -41,7 +41,7 @@ class Markovify extends DatabaseModule {
 			(i.customId === 'accept' || i.customId === 'deny');
 		const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
 		
-		await interaction.reply({
+		await interaction.followUp({
 			content: msg,
 			components: [row]
 		});
@@ -51,12 +51,12 @@ class Markovify extends DatabaseModule {
 			collector.stop();
 
 			if (i.customId === 'deny') {
-				await i.reply('Command cancelled.');
+				await i.followUp('Command cancelled.');
 				return;
 			} else if (i.customId === 'accept') {
 				accepted = true;
 
-				await i.reply({
+				await i.followUp({
 					content: `Creating speech model for ${userMention(interaction.user.id)}... This might take a while`,
 				});
 			}
