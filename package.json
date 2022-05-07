@@ -11,6 +11,7 @@
     "discord-api-types": "^0.26.1",
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0",
+    "markov-strings": "^3.0.1",
     "match-sorter": "^6.3.1",
     "mongodb": "^4.3.1",
     "node-vibrant": "^3.2.1-alpha.1",

@@ -53,7 +53,14 @@ const reminder = new SlashCommandBuilder()
         .setRequired(false))
 
 
-
+const mimic = new SlashCommandBuilder()
+	.setName('mimic')
+	.setDescription('Mimics a user based on their previous messages')
+	.addUserOption(option =>
+		option.setName('user')
+			.setDescription('User to mimic')
+			.setRequired(false))
+	
                     
 const inspire = new SlashCommandBuilder()
     .setName('inspire')
@@ -160,6 +167,7 @@ const commands = [
     moduler.toJSON(),
     starboard.toJSON(),
     reminder.toJSON(),
+	mimic.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

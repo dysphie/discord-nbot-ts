@@ -17,6 +17,7 @@ import wordle from "./modules/wordle";
 import leagueban from "./modules/ban-league";
 import { DatabaseModule, ModuleManager } from "./module_mgr";
 import reminder from "./modules/remindme";
+import markovify from "./modules/markovify";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -44,6 +45,7 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(permathreader);
 		this.moduleMgr.registerModule(starboard);
 		this.moduleMgr.registerModule(reminder);
+		this.moduleMgr.registerModule(markovify);
 	}
 }
 
@@ -54,7 +56,7 @@ const client = new ModuleBot({
 		Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
 		Intents.FLAGS.GUILD_MEMBERS,
 		Intents.FLAGS.GUILD_WEBHOOKS,
-		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS
 	],
 	partials: ["MESSAGE", "REACTION"], // used by starboard on uncached msgs
 	allowedMentions: {},
@@ -133,6 +135,10 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		case "reminder": {
 			await reminder.commandRemind(interaction);
+			break;
+		}
+		case "mimic": {
+			await markovify.commandMimic(interaction);
 			break;
 		}
 	}
