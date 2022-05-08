@@ -128,7 +128,7 @@ class WordleManager extends DatabaseModule {
 			await interaction.reply('Markov is not enabled on this server.');
 			return;
 		}
-		
+
 		const wordleCollection = getMongoDatabase()?.collection("wordle");
 		if (wordleCollection === undefined) {
 			await interaction.reply("No games played yet");

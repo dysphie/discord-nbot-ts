@@ -76,7 +76,7 @@ client.once("ready", async () => {
 	console.log(`Connected to Discord as ${client.user.tag}`);
 
 	await emoter.setupDatabaseIndexes();
-	
+
 	// TODO: Move to config
 	weather.setAssetGuild("759525750201909319");
 	emoter.setEmoteGuild("937552002991403132");
@@ -84,7 +84,7 @@ client.once("ready", async () => {
 	reminder.beginRepeatingTask(client);
 
 	// check every 5 minutes
-	setInterval(function(){
+	setInterval(function () {
 		leagueban.checkBans(client);
 	}, 300000);
 
@@ -92,11 +92,12 @@ client.once("ready", async () => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-	if (!interaction.isCommand() || !interaction.channel) {
+
+	if (!interaction.isCommand()) {
 		return;
 	}
 
-	if (!(interaction.member instanceof GuildMember)) {
+	if (interaction.channel === null || interaction.member === null || interaction.guild === null) {
 		return;
 	}
 
@@ -149,8 +150,22 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 client.on("messageReactionAdd", async (reaction) => {
+
+	if (reaction.message === null || reaction.message.author === null) {
+		return;
+	}
+
+	// If an admin reacts to a message of ours with X, delete it
+	if (reaction.emoji.name === "❌" &&
+		reaction.message.author.id === client.user?.id &&
+		reaction.message.member?.permissions.has("ADMINISTRATOR")) {
+		await reaction.message.delete();
+		return;
+	}
+
+
 	await starboard.handleReactionUpdate(reaction);
-	//await admin.handleReactionUpdate(reaction);
+
 });
 
 client.on("messageReactionRemove", async (reaction) => {
