@@ -410,15 +410,19 @@ class Emoter extends DatabaseModule {
 		const url = interaction.options.getString("url");
 
 		const guildstoSearch = [ interaction.guildId ];
-
+		const uploadersToSearch = [ interaction.user.id ];
 		// Admin can edit global emotes
 		if (isBotOwner(interaction.user.id)) {
 			guildstoSearch.push( GLOBAL_GUILD );
+
+			if (interaction.client.user !== null) {
+				uploadersToSearch.push( interaction.client.user.id);
+			}
 		}
 		
 		const result = await emotes.updateOne({
 			name: keyword,
-			uploader: interaction.user.id,
+			uploader: { $in: uploadersToSearch },
 			guild: { $in: guildstoSearch }
 		}, { $set: { url: url } });
 
