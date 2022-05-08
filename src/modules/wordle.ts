@@ -124,6 +124,11 @@ class WordleManager extends DatabaseModule {
 
 	async commandTopWordle(interaction: CommandInteraction): Promise<void> {
 
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply('Markov is not enabled on this server.');
+			return;
+		}
+		
 		const wordleCollection = getMongoDatabase()?.collection("wordle");
 		if (wordleCollection === undefined) {
 			await interaction.reply("No games played yet");
