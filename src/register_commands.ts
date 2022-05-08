@@ -61,6 +61,9 @@ const mimic = new SlashCommandBuilder()
 			.setDescription('User to mimic')
 			.setRequired(false))
 	
+const topwordle = new SlashCommandBuilder()
+	.setName('topwordle')
+	.setDescription('Posts the top plays in Wordle')
                     
 const inspire = new SlashCommandBuilder()
     .setName('inspire')
@@ -168,6 +171,7 @@ const commands = [
     starboard.toJSON(),
     reminder.toJSON(),
 	mimic.toJSON(),
+	topwordle.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

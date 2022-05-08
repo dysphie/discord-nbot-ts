@@ -122,7 +122,7 @@ client.on("interactionCreate", async (interaction) => {
 			break;
 		}
 		case "wordle": {
-			wordle.handleInteraction(interaction);
+			wordle.commandWordle(interaction);
 			break;
 		}
 		case "module": {
@@ -141,11 +141,16 @@ client.on("interactionCreate", async (interaction) => {
 			await markovify.commandMimic(interaction);
 			break;
 		}
+		case "topwordle": {
+			await wordle.commandTopWordle(interaction);
+			break;
+		}
 	}
 });
 
 client.on("messageReactionAdd", async (reaction) => {
 	await starboard.handleReactionUpdate(reaction);
+	//await admin.handleReactionUpdate(reaction);
 });
 
 client.on("messageReactionRemove", async (reaction) => {
