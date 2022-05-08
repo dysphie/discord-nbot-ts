@@ -65,4 +65,13 @@ async function getGeodataForLocation(location: string) {
 	return openCageResp.data;
 }
 
-export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR };
+const isBotOwner = (userId: string) => {
+
+	if (!process.env.NBOT_OWNER_ID) {
+		return false;
+	}
+
+	return process.env.NBOT_OWNER_ID === userId;
+}
+
+export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, isBotOwner };

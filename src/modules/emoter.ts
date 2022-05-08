@@ -9,7 +9,7 @@ import {
 	GuildMember,
 } from "discord.js";
 import { getMongoDatabase } from "../mongodb";
-import { postAsUser } from "../utils";
+import { isBotOwner, postAsUser } from "../utils";
 import { DatabaseModule } from "../module_mgr";
 
 const EMOTER_GUILD_ID = "719448049981849620";
@@ -393,6 +393,43 @@ class Emoter extends DatabaseModule {
 		await interaction.reply(`Disabled emote \`$${keyword}\``);
 	}
 
+	async commandEdit(interaction: CommandInteraction) {
+
+		const emotes = getMongoDatabase()?.collection("emoter.emotes2");
+		if (emotes === undefined) {
+			await interaction.reply("Emote database not available at this time");
+			return;
+		}
+
+		const keyword = interaction.options.getString("keyword");
+		if (keyword === null) {
+			await interaction.reply("Please specify a keyword.");
+			return;
+		}
+
+		const url = interaction.options.getString("url");
+
+		const guildstoSearch = [ interaction.guildId ];
+
+		// Admin can edit global emotes
+		if (isBotOwner(interaction.user.id)) {
+			guildstoSearch.push( GLOBAL_GUILD );
+		}
+		
+		const result = await emotes.updateOne({
+			name: keyword,
+			uploader: interaction.user.id,
+			guild: { $in: guildstoSearch }
+		}, { $set: { url: url } });
+
+		if (result.modifiedCount === 0) {
+			await interaction.reply("You do not own this emote.");
+			return;
+		}
+
+		await interaction.reply(`Edited emote \`${keyword}\``);
+	}
+
 	async commandEmote(interaction: CommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
@@ -408,14 +445,14 @@ class Emoter extends DatabaseModule {
 				await this.commandRandom(interaction);
 				break;
 			}
-			case "remove":
 			case "edit": {
-				await interaction.reply({
-					content: "Not implemented yet",
-					ephemeral: true,
-				});
+				await this.commandEdit(interaction);
 				break;
 			}
+			// case "remove" {
+			// 	await this.commandRemove(interaction);
+			// 	break;
+			// }
 			case "add": {
 				await this.commandAdd(interaction);
 				break;
