@@ -411,6 +411,7 @@ class Emoter extends DatabaseModule {
 
 		const guildstoSearch = [ interaction.guildId ];
 		const uploadersToSearch = [ interaction.user.id ];
+
 		// Admin can edit global emotes
 		if (isBotOwner(interaction.user.id)) {
 			guildstoSearch.push( GLOBAL_GUILD );
@@ -431,6 +432,17 @@ class Emoter extends DatabaseModule {
 			return;
 		}
 
+		// delete from cache guild
+		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
+		if (emoterGuild !== undefined) {
+			const emote = emoterGuild.emojis.cache.find(
+				(emote) => emote.name === keyword
+			);
+			if (emote) {
+				emote.delete();
+			}
+		}
+		
 		await interaction.reply(`Edited emote \`${keyword}\``);
 	}
 
