@@ -61,9 +61,18 @@ const mimic = new SlashCommandBuilder()
 			.setDescription('User to mimic')
 			.setRequired(false))
 	
-const topwordle = new SlashCommandBuilder()
-	.setName('topwordle')
+const stats_wordle = new SlashCommandBuilder()
+	.setName('stats_wordle')
 	.setDescription('Posts the top plays in Wordle')
+	.addStringOption(option =>
+		option.setName('type')
+			.setDescription('Type of stats to get')
+			.setRequired(true)
+			.setChoices([
+				['fastest', 'fastest'],
+				['lost_words', 'lost_words']
+			]))
+
                     
 const inspire = new SlashCommandBuilder()
     .setName('inspire')
@@ -171,7 +180,7 @@ const commands = [
     starboard.toJSON(),
     reminder.toJSON(),
 	mimic.toJSON(),
-	topwordle.toJSON(),
+	stats_wordle.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

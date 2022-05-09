@@ -122,12 +122,60 @@ class WordleManager extends DatabaseModule {
 		return true;
 	}
 
-	async commandTopWordle(interaction: CommandInteraction): Promise<void> {
+	async commandStats(interaction: CommandInteraction): Promise<void> {
 
 		if (!this.isEnabled(interaction.guildId)) {
-			await interaction.reply('Markov is not enabled on this server.');
+			await interaction.reply("This command is disabled in this server.");
 			return;
 		}
+
+		const statsType = interaction.options.getString("type");
+		if (!statsType) {
+			await interaction.reply("You must specify a type.");
+			return;
+		}
+
+		switch (statsType) {
+			case "fastest": {
+				await this.commandFastest(interaction);
+				break;
+			}
+			case "lost": {
+				await this.commandLost(interaction);
+			}
+		}
+	}
+
+	async commandLost(interaction: CommandInteraction): Promise<void> {
+
+		const wordleCollection = getMongoDatabase()?.collection("wordle");
+		if (wordleCollection === undefined) {
+			await interaction.reply("No games played yet");
+			return;
+		}
+
+		const lostGames = await wordleCollection.find({
+			won: false
+		}).toArray();
+
+		if (lostGames.length === 0) {
+			await interaction.reply("No games lost yet, good job");
+			return;
+		}
+
+		const lostGamesEmbed = new MessageEmbed();
+
+		// create a comma separated list of 'winner_word' in lostGames
+		const lostGamesList = lostGames.map(g => `\`${g.winner_word}\``).join(`", "`);
+
+		lostGamesEmbed.setTitle(`Lost games: ${lostGames.length}`);
+		lostGamesEmbed.setDescription(`${lostGamesList}`);
+		lostGamesEmbed.setColor("#ff0000");
+
+		await interaction.reply({ embeds: [lostGamesEmbed] });
+	}
+
+	async commandFastest(interaction: CommandInteraction): Promise<void> {
 
 		const wordleCollection = getMongoDatabase()?.collection("wordle");
 		if (wordleCollection === undefined) {
@@ -136,10 +184,10 @@ class WordleManager extends DatabaseModule {
 		}
 
 		// get the top 10 games with the lowest 'elapsed' time
-		const topGames = await wordleCollection.find({ elapsed: { $exists: true }}).sort({ elapsed: 1 }).limit(10).toArray();
+		const topGames = await wordleCollection.find({ elapsed: { $exists: true } }).sort({ elapsed: 1 }).limit(10).toArray();
 
 		const embed = new MessageEmbed();
-		embed.setTitle("Wordle Top 10 Plays");
+		embed.setTitle("Fastest wordle games");
 
 		let content = '';
 
