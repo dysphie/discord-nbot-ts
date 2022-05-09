@@ -137,11 +137,16 @@ class WordleManager extends DatabaseModule {
 
 		switch (statsType) {
 			case "fastest": {
-				await this.commandFastest(interaction);
+				await this.commandByTime(interaction, true);
 				break;
 			}
 			case "lost_words": {
 				await this.commandLost(interaction);
+				break;
+			}
+			case "slowest": {
+				await this.commandByTime(interaction, false);
+				break;
 			}
 		}
 	}
@@ -176,7 +181,7 @@ class WordleManager extends DatabaseModule {
 		await interaction.reply({ embeds: [lostGamesEmbed] });
 	}
 
-	async commandFastest(interaction: CommandInteraction): Promise<void> {
+	async commandByTime(interaction: CommandInteraction, sortByLowest: boolean): Promise<void> {
 
 		const wordleCollection = getMongoDatabase()?.collection("wordle");
 		if (wordleCollection === undefined) {
@@ -185,10 +190,12 @@ class WordleManager extends DatabaseModule {
 		}
 
 		// get the top 10 games with the lowest 'elapsed' time
-		const topGames = await wordleCollection.find({ elapsed: { $exists: true } }).sort({ elapsed: 1 }).limit(10).toArray();
+		const topGames = await wordleCollection
+		.find({ elapsed: { $exists: true } })
+		.sort({ elapsed: sortByLowest ? 1 : -1 }).limit(10).toArray();
 
 		const embed = new MessageEmbed();
-		embed.setTitle("Fastest wordle games");
+		embed.setTitle(`${sortByLowest ? "Fastest" : "Slowest"} wordle games`);
 
 		let content = '';
 

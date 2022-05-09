@@ -70,7 +70,8 @@ const stats_wordle = new SlashCommandBuilder()
 			.setRequired(true)
 			.setChoices([
 				['fastest', 'fastest'],
-				['lost_words', 'lost_words']
+				['lost_words', 'lost_words'],
+				['slowest', 'slowest'],
 			]))
 
                     
