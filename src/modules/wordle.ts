@@ -148,6 +148,10 @@ class WordleManager extends DatabaseModule {
 				await this.commandByTime(interaction, false);
 				break;
 			}
+			case "longest_words": {
+				await this.commandLongestWords(interaction);
+				break;
+			}
 		}
 	}
 
@@ -179,6 +183,34 @@ class WordleManager extends DatabaseModule {
 		lostGamesEmbed.setColor("#ff0000");
 
 		await interaction.reply({ embeds: [lostGamesEmbed] });
+	}
+
+	async commandLongestWords(interaction: CommandInteraction): Promise<void> {
+
+		const wordleCollection = getMongoDatabase()?.collection("wordle");
+		if (wordleCollection === undefined) {
+			await interaction.reply("Can't access stats right now");
+			return;
+		}
+
+		const longestWords = await wordleCollection.find({
+			won: true,
+		}).sort({ length: -1 }).limit(10).toArray();
+
+		if (longestWords.length === 0) {
+			await interaction.reply("No games played yet");
+			return;
+		}
+
+		const embed = new MessageEmbed();
+
+		embed.setTitle("Longest words guessed");
+		embed.setColor("#6aaa64");
+
+		const longestWordsList = longestWords.map(g => `\`${g.word}\``).join(` `);
+		embed.setDescription(`${longestWordsList}`);
+
+		await interaction.reply({ embeds: [embed] });
 	}
 
 	async commandByTime(interaction: CommandInteraction, sortByLowest: boolean): Promise<void> {

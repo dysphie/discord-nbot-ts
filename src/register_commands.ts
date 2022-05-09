@@ -72,6 +72,7 @@ const stats_wordle = new SlashCommandBuilder()
 				['fastest', 'fastest'],
 				['lost_words', 'lost_words'],
 				['slowest', 'slowest'],
+				['longest_words', 'longest_words'],
 			]))
 
                     
