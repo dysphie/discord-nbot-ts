@@ -140,7 +140,7 @@ class WordleManager extends DatabaseModule {
 				await this.commandFastest(interaction);
 				break;
 			}
-			case "lost": {
+			case "lost_words": {
 				await this.commandLost(interaction);
 			}
 		}
@@ -155,7 +155,7 @@ class WordleManager extends DatabaseModule {
 		}
 
 		const lostGames = await wordleCollection.find({
-			won: false
+			won: false,
 		}).toArray();
 
 		if (lostGames.length === 0) {
