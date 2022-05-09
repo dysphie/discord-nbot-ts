@@ -142,8 +142,8 @@ client.on("interactionCreate", async (interaction) => {
 			await markovify.commandMimic(interaction);
 			break;
 		}
-		case "topwordle": {
-			await wordle.commandTopWordle(interaction);
+		case "stats_wordle": {
+			await wordle.commandStats(interaction);
 			break;
 		}
 	}
