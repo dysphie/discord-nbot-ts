@@ -156,6 +156,7 @@ class WordleManager extends DatabaseModule {
 
 		const lostGames = await wordleCollection.find({
 			won: false,
+			guild: interaction.guildId
 		}).toArray();
 
 		if (lostGames.length === 0) {
@@ -166,7 +167,7 @@ class WordleManager extends DatabaseModule {
 		const lostGamesEmbed = new MessageEmbed();
 
 		// create a comma separated list of 'winner_word' in lostGames
-		const lostGamesList = lostGames.map(g => `\`${g.winner_word}\``).join(`", "`);
+		const lostGamesList = lostGames.map(g => `\`${g.word}\``).join(` `);
 
 		lostGamesEmbed.setTitle(`Lost games: ${lostGames.length}`);
 		lostGamesEmbed.setDescription(`${lostGamesList}`);
