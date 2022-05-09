@@ -193,9 +193,18 @@ class WordleManager extends DatabaseModule {
 			return;
 		}
 
-		const longestWords = await wordleCollection.find({
-			won: true,
-		}).sort({ length: -1 }).limit(10).toArray();
+		const longestWords = await wordleCollection.aggregate([
+				{ $match: { won: true } },
+				{$project: {
+					"word": 1,
+					"players": 1,
+					"word_length": { $strLenCP: "$word" }
+				}},
+				{$sort: {"word_length": -1}},
+				{$project: {"word_length": 0}},
+				{$limit: 10}
+			]).toArray();
+		
 
 		if (longestWords.length === 0) {
 			await interaction.reply("No games played yet");
@@ -207,8 +216,23 @@ class WordleManager extends DatabaseModule {
 		embed.setTitle("Longest words guessed");
 		embed.setColor("#6aaa64");
 
-		const longestWordsList = longestWords.map(g => `\`${g.word}\``).join(` `);
-		embed.setDescription(`${longestWordsList}`);
+		let content = ''
+		for (let i = 0; i < longestWords.length; i++) {
+			const game = longestWords[i];
+
+			// remove repeated entries from game.players
+			game.players = [...new Set(game.players)];
+
+			content += `${i + 1}. **${game.word}** in ${fmtTime(game.elapsed)} by `;
+			// TODO: Remove repeated players from here
+			game.players.map(((player: string) => {
+				content += `${userMention(player)} `;
+			}));
+
+			content += '\n';
+		}
+
+		embed.setDescription(content);
 
 		await interaction.reply({ embeds: [embed] });
 	}
