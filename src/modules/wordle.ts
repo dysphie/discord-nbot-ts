@@ -34,7 +34,7 @@ enum GuessStatus {
 
 
 const colors = new Map<GuessStatus, string>();
-colors.set(GuessStatus.Unknown, "#ffffff");
+colors.set(GuessStatus.Unknown, "#D3D3D3");
 colors.set(GuessStatus.Correct, "#6aaa64");
 colors.set(GuessStatus.Present, "#c9b458");
 colors.set(GuessStatus.Absent, "#787c7e");
@@ -754,6 +754,11 @@ class Wordle {
 
 				//console.log(`Requesting color for ${key}`);
 				const guessStatus = this.keyboardColors.get(key) || GuessStatus.Unknown;
+
+				if (guessStatus === GuessStatus.Correct) {
+					return;
+				}
+
 				const color = colors.get(guessStatus);
 				svgContent += `
           <rect x="${x}" y="${y}" width="${KB_BUTTON_WIDTH}" height="${KB_BUTTON_HEIGHT}" fill="${color}" />
@@ -821,7 +826,7 @@ class Wordle {
 				else {
 					svgContent += `
           <g>
-            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="white" />
+            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="#D3D3D3" />
           </g>
           `
 				}
