@@ -194,17 +194,19 @@ class WordleManager extends DatabaseModule {
 		}
 
 		const longestWords = await wordleCollection.aggregate([
-				{ $match: { won: true } },
-				{$project: {
+			{ $match: { won: true } },
+			{
+				$project: {
 					"word": 1,
 					"players": 1,
 					"word_length": { $strLenCP: "$word" }
-				}},
-				{$sort: {"word_length": -1}},
-				{$project: {"word_length": 0}},
-				{$limit: 10}
-			]).toArray();
-		
+				}
+			},
+			{ $sort: { "word_length": -1 } },
+			{ $project: { "word_length": 0 } },
+			{ $limit: 10 }
+		]).toArray();
+
 
 		if (longestWords.length === 0) {
 			await interaction.reply("No games played yet");
@@ -247,8 +249,8 @@ class WordleManager extends DatabaseModule {
 
 		// get the top 10 games with the lowest 'elapsed' time
 		const topGames = await wordleCollection
-		.find({ elapsed: { $exists: true } })
-		.sort({ elapsed: sortByLowest ? 1 : -1 }).limit(10).toArray();
+			.find({ elapsed: { $exists: true } })
+			.sort({ elapsed: sortByLowest ? 1 : -1 }).limit(10).toArray();
 
 		const embed = new MessageEmbed();
 		embed.setTitle(`${sortByLowest ? "Fastest" : "Slowest"} wordle games`);
@@ -754,10 +756,6 @@ class Wordle {
 
 				//console.log(`Requesting color for ${key}`);
 				const guessStatus = this.keyboardColors.get(key) || GuessStatus.Unknown;
-
-				if (guessStatus === GuessStatus.Correct) {
-					return;
-				}
 
 				const color = colors.get(guessStatus);
 				svgContent += `
