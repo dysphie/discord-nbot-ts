@@ -9,9 +9,9 @@ const MIN_GUESS_WORD_RARITY = 150_000;
 
 const MAX_ATTEMPTS = 6;
 
-const BOARD_TILE_GAP = 1;
+const BOARD_TILE_GAP = 4;
 
-const BOARD_TILE_HEIGHT = 20;
+const BOARD_TILE_HEIGHT = 32;
 const BOARD_TILE_WIDTH = 32;
 
 const KB_BUTTON_HEIGHT = 20;
@@ -34,10 +34,10 @@ enum GuessStatus {
 
 
 const colors = new Map<GuessStatus, string>();
-colors.set(GuessStatus.Unknown, "#D3D3D3");
-colors.set(GuessStatus.Correct, "#6aaa64");
-colors.set(GuessStatus.Present, "#c9b458");
-colors.set(GuessStatus.Absent, "#787c7e");
+colors.set(GuessStatus.Unknown, "#42464D");
+colors.set(GuessStatus.Correct, "#006843");
+colors.set(GuessStatus.Present, "#C2410C");
+colors.set(GuessStatus.Absent, "#202225");
 
 interface Guess {
 	letter: string;
@@ -636,7 +636,7 @@ class Wordle {
 
 	async displayGraphics(message: Message | CommandInteraction) {
 
-		await message.reply({
+		await message.channel?.send({
 			files: await this.getAttachments()
 		})
 	}
@@ -674,7 +674,7 @@ class Wordle {
 
 		if (this.won) {
 			embed.setTitle('You won!');
-			embed.setColor('#64AA6A');
+			embed.setColor('#006843');
 		} else {
 			embed.setTitle('You lost!');
 			embed.setColor('#ff0000');
@@ -735,9 +735,7 @@ class Wordle {
 	async createPreviewKeyboard() {
 
 		let maxWidth = 0;
-		const maxHeight = 3 * KB_BUTTON_HEIGHT + 2 * BOARD_TILE_GAP;
-
-		let svgContent = '';
+		let svgContent = '<svg>';
 
 		keyboard.forEach((row, rowIndex) => {
 
@@ -766,7 +764,7 @@ class Wordle {
             font-family="Arial"
             font-weight="bold"
             text-anchor="middle" 
-            fill="black">
+            fill="white">
             ${key.toUpperCase()}
           </text>
         `;
@@ -776,7 +774,6 @@ class Wordle {
 
 		svgContent += '</svg>';
 
-		svgContent = `<svg width="${maxWidth}" height="${maxHeight}">` + svgContent;
 		const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
 		return buffer;
 	}
@@ -809,6 +806,7 @@ class Wordle {
             <g>
               <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${color}" />
               <text
+				  fill="white"
                   font-size="${fontSize}"
                   font-family="Arial"
                   font-weight="bold"
@@ -824,7 +822,7 @@ class Wordle {
 				else {
 					svgContent += `
           <g>
-            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="#D3D3D3" />
+            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${colors.get(GuessStatus.Unknown)}" />
           </g>
           `
 				}
