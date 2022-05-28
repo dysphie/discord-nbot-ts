@@ -35,8 +35,8 @@ enum GuessStatus {
 
 const colors = new Map<GuessStatus, string>();
 colors.set(GuessStatus.Unknown, "#42464D");
-colors.set(GuessStatus.Correct, "#006843");
-colors.set(GuessStatus.Present, "#C2410C");
+colors.set(GuessStatus.Correct, "#15803D");
+colors.set(GuessStatus.Present, "#A16207");
 colors.set(GuessStatus.Absent, "#202225");
 
 interface Guess {
