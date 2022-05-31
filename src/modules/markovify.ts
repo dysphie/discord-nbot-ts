@@ -1,9 +1,10 @@
 import { userMention } from "@discordjs/builders";
-import { Client, CommandInteraction, Guild, MessageActionRow, MessageButton, TextChannel, User } from "discord.js";
+import { Client, CommandInteraction, Guild, GuildMember, Message, MessageActionRow, MessageButton, TextChannel, User } from "discord.js";
 import Markov, { MarkovGenerateOptions, MarkovImportExport } from "markov-strings";
 import { GridFSBucket } from "mongodb";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
+import { postAsUser } from "../utils";
 
 
 
@@ -153,6 +154,14 @@ class Markovify extends DatabaseModule {
 
 	async commandMimic(interaction: CommandInteraction) {
 
+		if (!(interaction.channel instanceof TextChannel)) {
+			return;
+		}
+
+		if (!(interaction.member instanceof GuildMember)) {
+			return;
+		}
+
 		if (interaction.channel === null || interaction.guild === null) {
 			return;
 		}
@@ -193,17 +202,32 @@ class Markovify extends DatabaseModule {
 		}
 
 		if (markov !== null) {
-			const sentence = markov.generate({
-				maxTries: 100,
-				prng: Math.random
+
+			const resp = await interaction.reply({
+				content: `Mimicking ${target.username}...`,
+				fetchReply: true
 			});
 
-			if (sentence === undefined)
-			{
-				await interaction.channel.send("Failed to generate a sentence. Not enough data.");
+			if (resp instanceof Message) {
+				await resp.delete();
 			}
+			
+			for (let i = 0; i < 3; i++) {
 
-			await interaction.channel.send(sentence.string);
+				const sentence = markov.generate({
+					maxTries: 100,
+					prng: Math.random
+				});
+
+				if (sentence === undefined)
+				{
+					await interaction.channel.send("Failed to generate a sentence. Not enough data.");
+					break;
+				}
+				else {
+					await postAsUser(interaction.channel, interaction.member, sentence.string, ' Simulator');
+				}
+			}
 		}
 	}
 

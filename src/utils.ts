@@ -7,9 +7,12 @@ const INVISIBLE_CHAR = "\u17B5";
 async function postAsUser(
 	channel: TextChannel | ThreadChannel,
 	member: GuildMember,
-	message: string
+	message: string,
+	appendToName = ""
 ): Promise<boolean> {
-	const userNamePadded = member.displayName.padEnd(
+
+	const appendedName = member.displayName + appendToName;
+	const userNamePadded = appendedName.padEnd(
 		member.displayName.length + 1,
 		INVISIBLE_CHAR
 	);
