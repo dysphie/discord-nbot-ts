@@ -9,8 +9,7 @@ import { getMongoDatabase } from "../mongodb";
 
 class Markovify extends DatabaseModule {
 
-
-	async doConfirmation(interaction: CommandInteraction): Promise<boolean> {
+	async doConfirmation(interaction: CommandInteraction) {
 
 		if (!interaction.channel || !interaction.guild) {
 			return false;
@@ -31,37 +30,30 @@ class Markovify extends DatabaseModule {
 		const msg = "Simulating your speech requires building a speech model. \n" +
 			"This involves collecting all of your previously sent messages. \n" +
 			"Messages from private and/or NSFW channels are not collected. \n" +
-			"The resulting data can be deleted at any time via `/markov optout` \n"
+			"The resulting data can be deleted at any time via `/mimic_optout` \n"
 		"Are you sure you want to continue?";
 
-		const filter = (i: { user: { id: string; }; customId: string; }) => i.user.id === interaction.user.id &&
-			(i.customId === 'accept' || i.customId === 'deny');
-		const collector = interaction.channel.createMessageComponentCollector({ filter, time: 15000 });
+		const filter = (i: { user: { id: string; }; }) => i.user.id === interaction.user.id;
+
+		const collector = interaction.channel.createMessageComponentCollector({ filter, time: 30000 });
 
 		await interaction.reply({
 			content: msg,
 			components: [row]
 		});
+		
+		console.log('Creating collector');
+		collector.on('collect', async button => {
 
-		let accepted = false;
-		collector.on('collect', async i => {
-
-			if (i.customId === 'deny') {
-				await i.reply('Command cancelled.');
-				return;
-			} else if (i.customId === 'accept') {
-				accepted = true;
-
-				await i.reply({
-					content: `Creating speech model for ${userMention(interaction.user.id)}... This might take a while`,
-				});
+			if (button.customId === 'deny') {
+				await button.reply('Operation cancelled');
+			} else if (button.customId === 'accept' && button.guild) {
+				await button.reply('Creating markov model... This might take a while');
+				await this.createSpeechModel(button.user, button.guild);
+				await button.followUp('Markov model created, do `/mimic` again');
 			}
-		});
-
-
-
-		return accepted;
-
+			}
+		);
 	}
 
 	async createSpeechModel(user: User, guild: Guild): Promise<Markov | null> {
@@ -89,19 +81,24 @@ class Markovify extends DatabaseModule {
 				.fetch({ limit: 1 })
 				.then(messagePage => (messagePage.size === 1 ? messagePage.at(0) : null));
 
-
+			console.log(`Fetching messages..`);
 			while (message) {
 				const messagePage = await channel.messages.fetch({ limit: 100, before: message.id });
-				messagePage.forEach(msg => messages.push(msg.content));
+
+				// for each message in messagePage, if message author is user, add to messages
+				for (const msg of messagePage.values()) {
+					if (msg.author.id === user.id) {
+						messages.push(msg.content);
+					}
+				}
 				message = 0 < messagePage.size ? messagePage.at(messagePage.size - 1) : null;
-				//console.log(`Getting messages prior to ${message?.createdAt.toUTCString()}`);
 			}
+			console.log(`Fetched ${messages.length} messages`);
 		}
 
 		// Build the Markov generator
 		const markov = new Markov({ stateSize: 2 })
 
-		// for each line strip whitespace
 		markov.addData(messages);
 
 		// save to mongo db FS grid
@@ -155,6 +152,7 @@ class Markovify extends DatabaseModule {
 	}
 
 	async commandMimic(interaction: CommandInteraction) {
+
 		if (interaction.channel === null || interaction.guild === null) {
 			return;
 		}
@@ -166,12 +164,14 @@ class Markovify extends DatabaseModule {
 
 		let target = interaction.options.getUser("user");
 		if (target === null) {
-			target = interaction.user;
+			target = interaction.user; // use author
 		}
 
-		let markov = await this.getMarkovForUser(target, interaction.guild);
+		const markov = await this.getMarkovForUser(target, interaction.guild);
 		
 		if (markov === null) {
+
+			
 
 			// We don't have a markov chain for this user
 			// If the user is the command issuer, ask if they want to create one
@@ -182,14 +182,14 @@ class Markovify extends DatabaseModule {
 				await interaction.reply(`${target.username} hasn't opted into mimic on this server.`);
 				return;
 			}
-
-			const accepted = await this.doConfirmation(interaction);
-			if (!accepted) {
-				await interaction.channel.send('Operation cancelled');
-			} else {
-				await interaction.channel.send('Creating markov model... This might take a while');
-				markov = await this.createSpeechModel(target, interaction.guild);
+			else 
+			{
+				await this.doConfirmation(interaction);
+				return;
 			}
+		}
+		else {
+			console.log(`Using existing markov model for ${target.username}`);
 		}
 
 		if (markov !== null) {
@@ -205,6 +205,40 @@ class Markovify extends DatabaseModule {
 
 			await interaction.channel.send(sentence.string);
 		}
+	}
+
+	async commandOptout(interaction: CommandInteraction) {
+
+		if (interaction.channel === null || interaction.guild === null) {
+			return;
+		}
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply('Markov is not enabled on this server.');
+			return;
+		}
+
+		let target = interaction.options.getUser("user");
+		if (target === null) {
+			target = interaction.user; // use author
+		}
+
+		const db = getMongoDatabase();
+		if (db === null) {
+			return;
+		}
+
+		const fileName = this.formatMarkovFilename(target, interaction.guild);
+		const bucket = new GridFSBucket(db, { bucketName: 'markov' });
+
+		// Check if we already have a markov model for this user
+		const files = await bucket.find({ filename: fileName }).toArray();
+
+		for (const file of files) {
+			await bucket.delete(file._id);
+		}
+
+		await interaction.reply(`Deleted ${files.length} markov models for ${target.username}`);
 	}
 }
 

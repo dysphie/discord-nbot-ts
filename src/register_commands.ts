@@ -60,6 +60,10 @@ const mimic = new SlashCommandBuilder()
 		option.setName('user')
 			.setDescription('User to mimic')
 			.setRequired(false))
+
+const mimic_optout = new SlashCommandBuilder()
+	.setName('mimic_optout')
+	.setDescription('Opts out of mimic')
 	
 const stats_wordle = new SlashCommandBuilder()
 	.setName('stats_wordle')
@@ -182,6 +186,7 @@ const commands = [
     starboard.toJSON(),
     reminder.toJSON(),
 	mimic.toJSON(),
+	mimic_optout.toJSON(),
 	stats_wordle.toJSON(),
 ];
 

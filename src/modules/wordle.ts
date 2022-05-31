@@ -131,7 +131,7 @@ class WordleManager extends DatabaseModule {
 
 		const statsType = interaction.options.getString("type");
 		if (!statsType) {
-			await interaction.reply("You must specify a type.");
+			await interaction.reply(`You must specify a type`);
 			return;
 		}
 

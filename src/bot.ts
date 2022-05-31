@@ -142,6 +142,10 @@ client.on("interactionCreate", async (interaction) => {
 			await markovify.commandMimic(interaction);
 			break;
 		}
+		case "mimic_optout": {
+			await markovify.commandOptout(interaction);
+			break;
+		}
 		case "stats_wordle": {
 			await wordle.commandStats(interaction);
 			break;
