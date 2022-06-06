@@ -48,6 +48,11 @@ class Starboard extends DatabaseModule {
 			return;
 		}
 
+		if (!interaction?.memberPermissions?.has("MANAGE_GUILD")) {
+			await interaction.reply("You must have the Manage Server permission to use this command.");
+			return;
+		}
+
 		const channel = interaction.options.getChannel("channel");
 		if (channel === null) {
 			await interaction.reply("You must specify a channel");

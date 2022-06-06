@@ -172,6 +172,13 @@ const moduler = new SlashCommandBuilder()
         .addStringOption(option => option.setName('name').setDescription('Module name')
             .setRequired(true)))
 
+const imagine = new SlashCommandBuilder()
+	.setName('imagine')
+	.setDescription('Generate an image from any prompt you give')
+	.addStringOption(option =>
+		option.setName('prompt')
+			.setDescription('Prompt to generate an image from')
+			.setRequired(true))	
 
 
 
@@ -188,6 +195,7 @@ const commands = [
 	mimic.toJSON(),
 	mimic_optout.toJSON(),
 	stats_wordle.toJSON(),
+	imagine.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

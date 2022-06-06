@@ -42,6 +42,32 @@ async function postAsUser(
 	}
 }
 
+const pad = (n: string | number, z = 2) => ('00' + n).slice(-z);
+
+const fmtTime = (miliseconds: number) => {
+
+	const hours = miliseconds / 3.6e6 | 0;
+	const minutes = (miliseconds % 3.6e6) / 6e4 | 0;
+	const seconds = (miliseconds % 6e4) / 1000 | 0;
+	const mils = (miliseconds % 1000);
+
+	let str = '';
+
+	if (hours) {
+		str += `${hours}h `;
+	}
+
+	if (minutes) {
+		str += `${minutes}m `;
+	}
+
+	if (seconds) {
+		str += `${seconds}.${pad(mils, 3)}s`;
+	}
+
+	return str;
+}
+
 async function getGeodataForLocation(location: string) {
 	if (!process.env.NBOT_OPENCAGE_API_KEY) {
 		return null;
@@ -77,4 +103,4 @@ const isBotOwner = (userId: string) => {
 	return process.env.NBOT_OWNER_ID === userId;
 }
 
-export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, isBotOwner };
+export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, isBotOwner, fmtTime };

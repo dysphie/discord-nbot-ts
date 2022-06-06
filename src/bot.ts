@@ -18,6 +18,7 @@ import leagueban from "./modules/ban-league";
 import { DatabaseModule, ModuleManager } from "./module_mgr";
 import reminder from "./modules/remindme";
 import markovify from "./modules/markovify";
+import minidalle from "./modules/minidalle";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -46,6 +47,7 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(starboard);
 		this.moduleMgr.registerModule(reminder);
 		this.moduleMgr.registerModule(markovify);
+		this.moduleMgr.registerModule(minidalle);
 	}
 }
 
@@ -148,6 +150,11 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		case "stats_wordle": {
 			await wordle.commandStats(interaction);
+			break;
+		}
+
+		case "imagine": {
+			await minidalle.commandCreate(interaction);
 			break;
 		}
 	}
