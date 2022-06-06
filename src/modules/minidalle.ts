@@ -28,7 +28,7 @@ class MiniDalle extends DatabaseModule {
 			await interaction.followUp("An error occurred while creating the image. Try again later");
 			return;
 		}
-		
+
 		const attachment = new MessageAttachment(buffer, "dalle.png");
 
 		const embed = new MessageEmbed();
@@ -57,7 +57,7 @@ class MiniDalle extends DatabaseModule {
 				}
 			})
 
-		if (res.status == 500) {
+		if (res.status != 200) {
 			console.log(`Painting queue full. Please try again later`);
 			return null;
 		}
