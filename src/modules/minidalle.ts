@@ -23,9 +23,17 @@ class MiniDalle extends DatabaseModule {
 		await interaction.deferReply();
 		await interaction.followUp("Imagining your prompt, this may take upwards of 2 minutes...");
 
-		const buffer = await this.create(prompt);
+		let buffer = null;
+		try {
+			buffer = await this.create(prompt);
+		} 
+		catch (e) {
+			await interaction.reply("An error occurred while creating the image.");
+			return;
+		}
+
 		if (buffer == null) {
-			await interaction.followUp("An error occurred while creating the image. Try again later");
+			await interaction.reply("An error occurred while creating the image.");
 			return;
 		}
 
