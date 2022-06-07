@@ -17,12 +17,21 @@ class MiniDalle extends DatabaseModule {
 
 		const prompt = interaction.options.getString("prompt");
 		if (!prompt) {
-			await interaction.reply("You must specify a prompt.");
+			await interaction.reply({
+				content: "Please provide a prompt.",
+				ephemeral: true
+			});
 			return;
 		}
 
-		await interaction.deferReply();
-		await interaction.followUp("Imagining your prompt, this may take upwards of 2 minutes...");
+		await interaction.deferReply({
+			ephemeral: true,
+		});
+
+		await interaction.followUp({
+			content: "test Imagining your prompt, this may take upwards of 2 minutes...",
+			ephemeral: true
+		});
 
 		try {
 			const buffer = await this.create(prompt);
@@ -35,11 +44,14 @@ class MiniDalle extends DatabaseModule {
 			})
 
 			embed.setImage(`attachment://${prompt}.png`);
-			await interaction.followUp({ embeds: [embed], files: [attachment] });
+			await interaction.channel?.send({ embeds: [embed], files: [attachment] });
 		}
 		catch (e) 
 		{
-			await interaction.followUp(`Image queue full, try again later`);
+			await interaction.followUp({
+				content: "Image queue is full, try again later",
+				ephemeral: true
+			});
 			return;
 		}
 	}
