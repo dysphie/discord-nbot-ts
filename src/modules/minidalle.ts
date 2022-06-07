@@ -28,12 +28,12 @@ class MiniDalle extends DatabaseModule {
 			buffer = await this.create(prompt);
 		} 
 		catch (e) {
-			await interaction.reply("An error occurred while creating the image.");
+			await interaction.followUp("An error occurred while creating the image.");
 			return;
 		}
 
 		if (buffer == null) {
-			await interaction.reply("An error occurred while creating the image.");
+			await interaction.followUp("An error occurred while creating the image.");
 			return;
 		}
 
