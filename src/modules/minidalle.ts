@@ -29,31 +29,47 @@ class MiniDalle extends DatabaseModule {
 		});
 
 		await interaction.followUp({
-			content: "test Imagining your prompt, this may take upwards of 2 minutes...",
+			content: "Imagining your prompt, this can take a while",
 			ephemeral: true
 		});
 
-		try {
-			const buffer = await this.create(prompt);
-			const attachment = new MessageAttachment(buffer, "dalle.png");
-			const embed = new MessageEmbed();
 
-			embed.setDescription(`"${prompt}" by ${userMention(interaction.user.id)}`);
-			embed.setFooter({
-				text: "🧠 Powered by DALL·E mini",
-			})
+		for (let attempts = 0; attempts < 20; attempts++) {
+			try {
+				const collage = await this.create(prompt);
 
-			embed.setImage(`attachment://${prompt}.png`);
-			await interaction.channel?.send({ embeds: [embed], files: [attachment] });
+				console.log(`Success!`);
+
+				const attachment = new MessageAttachment(collage, "dalle.png");
+				const embed = new MessageEmbed();
+
+				embed.setDescription(`"${prompt}" by ${userMention(interaction.user.id)}`);
+				embed.setFooter({
+					text: "🧠 Powered by DALL·E mini",
+				})
+
+				embed.setImage(`attachment://${prompt}.png`);
+				await interaction.channel?.send({ embeds: [embed], files: [attachment] });
+				break;
+
+			} catch (e) {
+
+				if (attempts >= 20) {
+					//console.log(`Dalle: Failed definitely after 20 attempts..`);
+					await interaction.followUp({
+						content: "Failed to generate image after 20 attempts.",
+						ephemeral: true
+					});
+					break;
+				}
+				else {
+					//console.log(`${e}, retrying in 2 seconds (${attempts})`);
+					await new Promise(r => setTimeout(r, 2000));
+				}
+			}
 		}
-		catch (e) 
-		{
-			await interaction.followUp({
-				content: "Image queue is full, try again later",
-				ephemeral: true
-			});
-			return;
-		}
+
+		
 	}
 
 	async create(prompt: string): Promise<Buffer> {
@@ -91,7 +107,7 @@ class MiniDalle extends DatabaseModule {
 		})
 
 		// // merge all the images
-		const composite = await background.composite(parts).jpeg().toBuffer();
+		const composite = await background.composite(parts).png().toBuffer();
 		return composite;
 	}
 }
