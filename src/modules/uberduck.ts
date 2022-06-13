@@ -1,4 +1,4 @@
-import { bold, userMention } from "@discordjs/builders";
+import { bold, spoiler, userMention } from "@discordjs/builders";
 import axios from "axios";
 import { AutocompleteInteraction, CommandInteraction, MessageAttachment, MessageEmbed } from "discord.js";
 import dotenv from "dotenv";
@@ -115,7 +115,11 @@ class Uberduck extends DatabaseModule {
 			const attachment = new MessageAttachment(audioPath, "speech.wav");
 			const embed = new MessageEmbed();
 
-			embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}`);
+			const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
+
+			embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}\n` +
+				`Prompt: ${spoiler(textShort)}`);
+
 			embed.setFooter({
 				text: "🧠 Powered by Uberduck",
 			})
