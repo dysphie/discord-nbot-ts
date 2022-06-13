@@ -180,6 +180,19 @@ const imagine = new SlashCommandBuilder()
 			.setDescription('Prompt to generate an image from')
 			.setRequired(true))	
 
+const vocalize = new SlashCommandBuilder()
+.setName('vocalize')
+.setDescription('Generate speech from any prompt you give')
+.addStringOption(option =>
+	option
+		.setName('voice')
+		.setDescription('Audio model to use')
+		.setAutocomplete(true)
+		.setRequired(true))
+.addStringOption(option =>
+	option.setName('prompt')
+		.setDescription('Prompt to generate speech from')
+		.setRequired(true))
 
 
 const commands = [
@@ -196,6 +209,7 @@ const commands = [
 	mimic_optout.toJSON(),
 	stats_wordle.toJSON(),
 	imagine.toJSON(),
+	vocalize.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

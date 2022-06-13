@@ -19,6 +19,7 @@ import { DatabaseModule, ModuleManager } from "./module_mgr";
 import reminder from "./modules/remindme";
 import markovify from "./modules/markovify";
 import minidalle from "./modules/minidalle";
+import uberduck from "./modules/uberduck";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -93,69 +94,79 @@ client.once("ready", async () => {
 	await registerCommands(client.user.id, token);
 });
 
+
 client.on("interactionCreate", async (interaction) => {
 
-	if (!interaction.isCommand()) {
-		return;
+	if (interaction.isCommand()) 
+	{
+		switch (interaction.commandName) {
+			case "weather": {
+				weather.commandWeather(interaction);
+				break;
+			}
+			case "emoter": {
+				emoter.commandEmote(interaction);
+				break;
+			}
+			case "inspire": {
+				inspirer.commandInspire(interaction);
+				break;
+			}
+			case "namecolor": {
+				nameColorer.commandNamecolor(interaction);
+				break;
+			}
+			case "animal": {
+				animals.commandAnimal(interaction);
+				break;
+			}
+			case "wordle": {
+				wordle.commandWordle(interaction);
+				break;
+			}
+			case "module": {
+				await client.moduleMgr.commandModule(interaction);
+				break
+			}
+			case "starboard": {
+				await starboard.commandSetStarboardChannel(interaction);
+				break;
+			}
+			case "reminder": {
+				await reminder.commandRemind(interaction);
+				break;
+			}
+			case "mimic": {
+				await markovify.commandMimic(interaction);
+				break;
+			}
+			case "mimic_optout": {
+				await markovify.commandOptout(interaction);
+				break;
+			}
+			case "stats_wordle": {
+				await wordle.commandStats(interaction);
+				break;
+			}
+	
+			case "imagine": {
+				await minidalle.commandCreate(interaction);
+				break;
+			}
+	
+			case "vocalize": {
+				await uberduck.commandVocalize(interaction);
+				break;
+			}
+		}
 	}
-
-	if (interaction.channel === null || interaction.member === null || interaction.guild === null) {
-		return;
-	}
-
-	switch (interaction.commandName) {
-		case "weather": {
-			weather.commandWeather(interaction);
-			break;
-		}
-		case "emoter": {
-			emoter.commandEmote(interaction);
-			break;
-		}
-		case "inspire": {
-			inspirer.commandInspire(interaction);
-			break;
-		}
-		case "namecolor": {
-			nameColorer.commandNamecolor(interaction);
-			break;
-		}
-		case "animal": {
-			animals.commandAnimal(interaction);
-			break;
-		}
-		case "wordle": {
-			wordle.commandWordle(interaction);
-			break;
-		}
-		case "module": {
-			await client.moduleMgr.commandModule(interaction);
-			break
-		}
-		case "starboard": {
-			await starboard.commandSetStarboardChannel(interaction);
-			break;
-		}
-		case "reminder": {
-			await reminder.commandRemind(interaction);
-			break;
-		}
-		case "mimic": {
-			await markovify.commandMimic(interaction);
-			break;
-		}
-		case "mimic_optout": {
-			await markovify.commandOptout(interaction);
-			break;
-		}
-		case "stats_wordle": {
-			await wordle.commandStats(interaction);
-			break;
-		}
-
-		case "imagine": {
-			await minidalle.commandCreate(interaction);
-			break;
+	else if (interaction.isAutocomplete()) {
+		console.log(`Got autocomplet request for ${interaction.commandName}`);
+		switch (interaction.commandName) {
+			case "vocalize": {
+				await uberduck.commandAutocomplete(interaction);
+				break;
+			}
 		}
 	}
 });

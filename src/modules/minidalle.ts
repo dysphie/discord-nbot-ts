@@ -38,7 +38,7 @@ class MiniDalle extends DatabaseModule {
 			try {
 				const collage = await this.create(prompt);
 
-				console.log(`Success!`);
+				//console.log(`Success!`);
 
 				const attachment = new MessageAttachment(collage, "dalle.png");
 				const embed = new MessageEmbed();
