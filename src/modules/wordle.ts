@@ -7,7 +7,7 @@ import { getMongoDatabase } from "../mongodb";
 const MIN_WINNER_WORD_RARITY = 1_000_000;
 const MIN_GUESS_WORD_RARITY = 150_000;
 
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 6;
 
 const BOARD_TILE_GAP = 4;
 
