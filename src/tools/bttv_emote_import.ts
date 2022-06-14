@@ -1,96 +1,104 @@
 import axios from "axios";
-import { OptionalId, Document } from "mongodb";
 import { getMongoDatabase, initMongoDatabase } from "../mongodb";
 import { config } from "dotenv";
-//import { DbEmote } from "../modules/emoter";
 config();
 
 interface DbEmote {
-  name: string;
-  guild: string;
-  uploader: string;
-  url: string;
-  createdAt: Date;
+	name: string;
+	guild: string;
+	uploader: string;
+	url: string;
+	createdAt: Date;
+	source: string;
 }
 
 const URLS = [
-  'https://api.betterttv.net/3/emotes/shared/trending',
-  'https://api.betterttv.net/3/emotes/shared/top'
+	'https://api.betterttv.net/3/emotes/shared/top',
+	'https://api.betterttv.net/3/emotes/shared/trending'
 ];
 
 const EMOTE_URL_PREPEND = "https://cdn.betterttv.net/emote/";
-const EMOTE_URL_APPEND = "/3x";
 
 class BttvImport {
-  async downloadFromUrl(url: string): Promise<void> {
-    await initMongoDatabase();
 
-    // start a bulk operation in mongodb
-    const collection = getMongoDatabase()?.collection('emoter.emotes2');
-    if (collection === undefined) {
-      console.error("Failed to initialize database");
-      return;
-    }
+	async beginImport(url: string): Promise<void> {
 
-    await collection.createIndex({ name: 1 , guild: 1 }, { unique: true });
-    process.exit(0);
+		await initMongoDatabase();
 
-    // initialize a bulk operation
+		// start a bulk operation in mongodb
+		const collection = getMongoDatabase()?.collection('emoter.emotes3');
+		if (collection === undefined) {
+			console.error("Failed to initialize database");
+			return;
+		}
 
-    // const seenNames = new Set<string>();
+		// Holds the most uses for a given emote keyword
+		const mostUses = new Map();
 
-    // for (let i = 0; i < 15000; i += 100) {
+		for (let i = 0; i < 15000; i += 100) {
 
-    //   const resp = await axios.get(url, {
-    //     params: { limit: 100, offset: i }
-    //   });
+			const resp = await axios.get(url, {
+				params: { limit: 100, offset: i }
+			});
 
-    //   if (resp.status !== 200) {
-    //     console.error(`Failed to download ${url}. Got status ${resp.status}`);
-    //     return;
-    //   }
+			if (resp.status !== 200) {
+				console.error(`Failed to download ${url}. Got status ${resp.status}`);
+				return;
+			}
 
-    //   const toInsert: DbEmote[] = [];
+			const toInsert: DbEmote[] = [];
 
-    //   resp.data.forEach((entry: any) => {
-        
-    //     const name = entry.emote.code;
-    //     const id = entry.emote.id;
+			resp.data.forEach((entry: any) => {
 
-    //     if (name === undefined || id === undefined) {
-    //       return;
-    //     }
+				const name = entry.emote.code;
+				const id = entry.emote.id;
+				const uses = entry.total;
 
-    //     if (seenNames.has(name)) {
-    //       console.log(`Ignoring duplicate name ${name}`);
-    //       return;
-    //     }
+				if (name === undefined || id === undefined || uses === undefined) {
+					console.log(`🔴 Ignoring '${name}' with undefined name or id`);
+					return;
+				}
 
-    //     let emoteUrl = `${EMOTE_URL_PREPEND}${id}`;
-    //     emoteUrl += entry.emote.imageType === 'gif' ? '/3x' : '/2x';
+				// Ignore this emote if a more popular version of it already exists
+				const topUses = mostUses.get(name);
+				if (topUses !== undefined && topUses > uses) {
+					console.log(`🟡 Ignoring '${name}' (${uses} < ${topUses})`);
+					return;
+				}
 
-    //     console.log(`Saving emote: ${name}, URL: ${emoteUrl}`);
+				let emoteUrl = `${EMOTE_URL_PREPEND}${id}`;
 
-    //     seenNames.add(name);
+				emoteUrl += entry.emote.imageType === 'gif' ? '/3x' : '/2x';
 
-    //     // create insert in bulk operation
-    //     toInsert.push({
-    //       name: name,
-    //       url: emoteUrl,
-    //       guild: '0',
-    //       uploader: '400092409834504212', // FIXME: hardcoded bot id
-    //       createdAt: new Date(),
-    //     });
-    //   });
+				console.log(`🟢 Adding '${name}' with ${uses} uses`);
 
-    //   // execute bulk operation
-    //   if (toInsert.length > 0) {
-    //     await collection.insertMany(toInsert);
-    //   } else {
-    //     console.log("Ignoring page with no entries");
-    //   }
-    // }
-  }
+				mostUses.set(name, uses);
+
+				// create insert in bulk operation
+				toInsert.push({
+					name: name,
+					url: emoteUrl,
+					guild: '0',
+					uploader: '400092409834504212', // FIXME: hardcoded bot id
+					createdAt: new Date(),
+					source: 'bttv'
+				});
+			});
+
+			if (toInsert.length > 0) {
+				await collection.insertMany(toInsert);
+			}
+		}
+
+		console.log('Finished');
+	}
 }
 
-new BttvImport().downloadFromUrl(URLS[1]).catch(console.error);
+const main = async () => {
+	const importer = new BttvImport();
+	for (const url of URLS) {
+		await importer.beginImport(url);
+	}
+}
+
+main().catch(console.error);
