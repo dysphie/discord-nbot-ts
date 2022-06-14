@@ -161,7 +161,6 @@ client.on("interactionCreate", async (interaction) => {
 		}
 	}
 	else if (interaction.isAutocomplete()) {
-		console.log(`Got autocomplet request for ${interaction.commandName}`);
 		switch (interaction.commandName) {
 			case "vocalize": {
 				await uberduck.commandAutocomplete(interaction);

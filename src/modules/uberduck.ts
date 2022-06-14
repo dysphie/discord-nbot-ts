@@ -46,11 +46,12 @@ class Uberduck extends DatabaseModule {
 		});
 	}
 
-	async createSpeech(text: string, name: string) {
-		
+	async createSpeechRaw(text: string, name: string): Promise<Buffer> {
+
 		const resp = await axios({
 			method: 'post',
-			url: 'https://api.uberduck.ai/speak',
+			responseType: 'arraybuffer',
+			url: 'https://api.uberduck.ai/speak-synchronous',
 			headers: {
 				'Authorization': this.buildAuthHeader(),
 			},
@@ -60,21 +61,37 @@ class Uberduck extends DatabaseModule {
 			}
 		});
 
-		return resp.data.uuid;
+		const buffer = Buffer.from(resp.data, "utf-8");
+		return buffer;
 	}
 
-	async pollSpeechStatus(speechId: string) {
-		//(`Polling speech status for ${speechId}`);
-		const resp = await axios({
-			method: 'get',
-			url: `https://api.uberduck.ai/speak-status?uuid=${speechId}`,
-		});
+	// async createSpeech(text: string, name: string) {
 
-		return resp.data;
-	}
+	// 	const resp = await axios({
+	// 		method: 'post',
+	// 		url: 'https://api.uberduck.ai/speak',
+	// 		headers: {
+	// 			'Authorization': this.buildAuthHeader(),
+	// 		},
+	// 		data: {
+	// 			speech: text, // text to speak
+	// 			voice: name, // voice model
+	// 		}
+	// 	});
 
-	async commandVocalize(interaction: CommandInteraction) 
-	{
+	// 	return resp.data.uuid;
+	// }
+
+	// async pollSpeechStatus(speechId: string) {
+	// 	const resp = await axios({
+	// 		method: 'get',
+	// 		url: `https://api.uberduck.ai/speak-status?uuid=${speechId}`,
+	// 	});
+
+	// 	return resp.data;
+	// }
+
+	async commandVocalize(interaction: CommandInteraction) {
 		const text = interaction.options.getString('prompt');
 		const name = interaction.options.getString('voice');
 
@@ -89,34 +106,27 @@ class Uberduck extends DatabaseModule {
 			ephemeral: true
 		});
 
-		const uuid = await this.createSpeech(text, name);
-	
-		//console.log(`Created speech ${uuid}`);
-	
-		//const uuid = 'c741b2bd-5f8f-481c-988f-c1a0ccc06309';
-	
-		let audioPath = null;
-	
-		const MAX_ATTEMPTS = 20;
-		let attempts = 0;
-		while (audioPath === null && attempts++ < MAX_ATTEMPTS) {
-			//console.log('Speech not ready, retrying in 5 seconds..');
-			await new Promise(resolve => setTimeout(resolve, 5000));
-			const status = await this.pollSpeechStatus(uuid);
-			audioPath = status.path;
-			//attempts++;
-		}
-	
-		if (audioPath !== null) {
-			
-			// find the voice with this name
+		//const uuid = await this.createSpeech(text, name);
+		// let audioPath = null;
+
+		// const MAX_ATTEMPTS = 20;
+		// let attempts = 0;
+		// while (audioPath === null && attempts++ < MAX_ATTEMPTS) {
+		// 	//console.log('Speech not ready, retrying in 5 seconds..');
+		// 	await new Promise(resolve => setTimeout(resolve, 5000));
+		// 	const status = await this.pollSpeechStatus(uuid);
+		// 	audioPath = status.path;
+		// 	//attempts++;
+		// }
+
+		try {
+			const buffer = await this.createSpeechRaw(text, name);
 			const actorName = this.voices.find(voice => voice.name === name)?.displayName ?? 'Unknown';
 
-			const attachment = new MessageAttachment(audioPath, "speech.wav");
+			const attachment = new MessageAttachment(buffer, "speech.wav");
 			const embed = new MessageEmbed();
 
 			const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
-
 			embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}\n` +
 				`Prompt: ${spoiler(textShort)}`);
 
@@ -125,9 +135,13 @@ class Uberduck extends DatabaseModule {
 			})
 
 			await interaction.channel?.send({ embeds: [embed], files: [attachment] });
-
-		} else {
-			console.log(`Failed to get speech after ${attempts} attempts`);
+		}
+		catch (e) {
+			await interaction.reply({
+				content: 'Failed to generate speech!',
+				ephemeral: true
+			});
+			return;
 		}
 	}
 
@@ -137,7 +151,7 @@ class Uberduck extends DatabaseModule {
 			await interaction.respond([]);
 			return;
 		}
-		
+
 		const searcher = new FuzzySearch(this.voices, ['displayName'], {
 			caseSensitive: false,
 		});
