@@ -21,6 +21,9 @@ const EMOTE_URL_PREPEND = "https://cdn.betterttv.net/emote/";
 
 class BttvImport {
 
+	// Holds the most uses for a given emote keyword
+	mostUses = new Map();
+
 	async beginImport(url: string): Promise<void> {
 
 		await initMongoDatabase();
@@ -32,8 +35,6 @@ class BttvImport {
 			return;
 		}
 
-		// Holds the most uses for a given emote keyword
-		const mostUses = new Map();
 
 		for (let i = 0; i < 15000; i += 100) {
 
@@ -60,8 +61,8 @@ class BttvImport {
 				}
 
 				// Ignore this emote if a more popular version of it already exists
-				const topUses = mostUses.get(name);
-				if (topUses !== undefined && topUses > uses) {
+				const topUses = this.mostUses.get(name);
+				if (topUses !== undefined && topUses >= uses) {
 					console.log(`🟡 Ignoring '${name}' (${uses} < ${topUses})`);
 					return;
 				}
@@ -72,7 +73,7 @@ class BttvImport {
 
 				console.log(`🟢 Adding '${name}' with ${uses} uses`);
 
-				mostUses.set(name, uses);
+				this.mostUses.set(name, uses);
 
 				// create insert in bulk operation
 				toInsert.push({

@@ -137,7 +137,7 @@ class Uberduck extends DatabaseModule {
 			await interaction.channel?.send({ embeds: [embed], files: [attachment] });
 		}
 		catch (e) {
-			await interaction.reply({
+			await interaction.followUp({
 				content: 'Failed to generate speech!',
 				ephemeral: true
 			});
