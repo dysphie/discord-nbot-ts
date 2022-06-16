@@ -46,55 +46,49 @@ class Weather extends DatabaseModule {
 		}
 
 		let location = interaction.options.getString("location");
+		let privateLocation = false;
 		if (!location) {
-			const db = getMongoDatabase();
-			if (db != null) {
-				console.log("find one for " + interaction.user.id);
-				const userLocation = await db
-					.collection("locations")
-					.findOne({ _id: Long.fromString(interaction.user.id) });
-				console.log(userLocation);
+			const locationsCol = getMongoDatabase()?.collection("locations");
+			if (locationsCol != undefined) {
+				
+				const userLocation = await locationsCol.findOne({ _id: Long.fromString(interaction.user.id) });
+
 				if (userLocation && userLocation.addr != null) {
 					location = userLocation.addr;
-					console.log("Using saved location " + location);
+					privateLocation = userLocation.private === true;
 				}
 			}
 		}
 
 		if (!location) {
-			await interaction.reply("I don't know where you are.");
+			await interaction.reply({
+				content: "Please specify a location.",
+				ephemeral: true
+			});
 			return;
 		}
 
 		const openCageRespData = await getGeodataForLocation(location);
 		if (!openCageRespData) {
-			await interaction.reply("Failed to resolve location");
+			await interaction.reply({
+				content: "Could not find given location.",
+				ephemeral: true
+			});
 			return;
 		}
 
 		const lat = openCageRespData["results"][0]["geometry"]["lat"];
 		const lon = openCageRespData["results"][0]["geometry"]["lng"];
-		const tz =
-			openCageRespData["results"][0]["annotations"]["timezone"]["name"];
+		const tz = openCageRespData["results"][0]["annotations"]["timezone"]["name"];
 		const label = openCageRespData["results"][0]["formatted"];
-		const sunset =
-			openCageRespData["results"][0]["annotations"]["sun"]["set"][
-				"apparent"
-			];
-		const sunrise =
-			openCageRespData["results"][0]["annotations"]["sun"]["rise"][
-				"apparent"
-			];
+		const sunset = openCageRespData["results"][0]["annotations"]["sun"]["set"]["apparent"];
+		const sunrise = openCageRespData["results"][0]["annotations"]["sun"]["rise"]["apparent"];
 
-		// create Date out of epoch
 		const sunsetTime = new Date(sunset * 1000);
 		const sunriseTime = new Date(sunrise * 1000);
 
 		// check if it's night
 		const isNight = sunsetTime.getTime() > sunriseTime.getTime();
-		console.log(`it is ${isNight ? "night" : "day"}`);
-
-		//console.log(response.data.geo);
 
 		// time 3 hours from now
 		const endTime = new Date();
@@ -113,8 +107,8 @@ class Weather extends DatabaseModule {
 				// timezone: tz,
 				fields: [
 					"temperatureApparentAvg",
-					"temperatureApparentMin",
-					"temperatureApparentMax",
+					// "temperatureApparentMin",
+					// "temperatureApparentMax",
 					"humidityAvg",
 					"windSpeedAvg",
 					"weatherCode",
@@ -163,21 +157,15 @@ class Weather extends DatabaseModule {
 				"startTime"
 			];
 
-		// print HH:MM
-		console.log(typeof nowTime);
-		console.log(nowTime);
-
 		let forecast = "";
 
 		const hourlyVals =
 			tomorrowioRespData["data"]["timelines"][0]["intervals"];
 
-		// for loop that goes in steps of 4
 		for (let i = 4; i < hourlyVals.length; i += 4) {
 			const temp = hourlyVals[i]["values"]["temperatureApparentAvg"];
 			const futureTime = hourlyVals[i]["startTime"];
 
-			// convert futureTime to epoch timestamp string
 			const futureSeconds = new Date(futureTime).getTime() / 1000;
 
 			const futureCode = hourlyVals[i]["values"]["weatherCode"];
@@ -203,7 +191,6 @@ class Weather extends DatabaseModule {
 			hour12: false,
 		});
 
-		//create embed
 		const embed = new MessageEmbed().setFields([
 			{ name: `Forecast`, value: forecast, inline: true },
 		]);
@@ -212,17 +199,21 @@ class Weather extends DatabaseModule {
 			embed.setDescription(`${nowField}`);
 		}
 
-		const countryCode =
-			openCageRespData["results"][0]["components"]["country_code"];
-		embed.setFooter({
-			iconURL: `https://flagcdn.com/32x24/${countryCode}.png`,
-			text: `${label} at ${nowTimeFormatted}`,
-		});
+		const countryCode = openCageRespData["results"][0]["components"]["country_code"];
+
+		if (!privateLocation) {
+			embed.setFooter({
+				iconURL: `https://flagcdn.com/32x24/${countryCode}.png`,
+				text: `${label} at ${nowTimeFormatted}`,
+			});
+		} else {
+			embed.setFooter({
+				text: `Undisclosed location`,
+			});
+		}
 
 		embed.setTitle(`${nowCodeDesc}`);
 		await interaction.reply({ embeds: [embed] });
-
-		//await interaction.reply({embeds: [embed]});
 	}
 
 	formatTemp(temp: string) {
