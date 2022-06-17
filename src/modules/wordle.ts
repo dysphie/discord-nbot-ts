@@ -4,8 +4,10 @@ import sharp from "sharp";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
 
-const MIN_WINNER_WORD_RARITY = 1_000_000;
-const MIN_GUESS_WORD_RARITY = 150_000;
+// const MIN_WINNER_WORD_RARITY = 1_000_000;
+// const MIN_GUESS_WORD_RARITY = 150_000;
+const MIN_WINNER_WORD_RARITY = 200;
+const MIN_GUESS_WORD_RARITY = 100;
 
 const MAX_ATTEMPTS = 6;
 
@@ -334,8 +336,8 @@ class Wordle {
 		let wantedLen = interaction.options.getInteger('length');
 		if (wantedLen === null) {
 			wantedLen = 5;
-		} else if (wantedLen < 3 || wantedLen > 15) {
-			await interaction.reply(`Word length must be between 3 and 15 characters.`);
+		} else if (wantedLen < 4 || wantedLen > 10) {
+			await interaction.reply(`Word length must be between 4 and 10 characters.`);
 			return;
 		}
 
@@ -396,7 +398,7 @@ class Wordle {
 		}
 
 		// Check that the word exists
-		const collection = getMongoDatabase()?.collection('dictionary');
+		const collection = getMongoDatabase()?.collection('dictionary2');
 		if (collection) {
 			const entry = await collection?.findOne(
 				{
@@ -709,7 +711,7 @@ class Wordle {
 			return;
 		}
 
-		const collection = db.collection('dictionary');
+		const collection = db.collection('dictionary2');
 		const entry = await collection.aggregate([
 			{
 				$match: {
