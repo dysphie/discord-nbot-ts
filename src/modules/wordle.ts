@@ -440,7 +440,7 @@ class Wordle {
 			return;
 		}
 
-		const collection = db.collection('wordle');
+		const collection = db.collection('wordle2');
 
 		const game: DbGame = {
 			word: this.winnerWord,
@@ -461,7 +461,7 @@ class Wordle {
 			return null;
 		}
 
-		const collection = db.collection('wordle');
+		const collection = db.collection('wordle2');
 		let entries = await collection.find({ guild: guildId }).toArray();
 
 		entries = entries.sort((a, b) => {
