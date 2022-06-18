@@ -49,11 +49,6 @@ class Uberduck extends DatabaseModule {
 
 	async createSpeechRaw(text: string, name: string): Promise<Buffer> {
 
-		if (name === 'random') {
-			const voice = this.voices[Math.floor(Math.random() * this.voices.length)];
-			name = voice.name;
-		}
-
 		const resp = await axios({
 			method: 'post',
 			responseType: 'arraybuffer',
@@ -99,7 +94,12 @@ class Uberduck extends DatabaseModule {
 
 	async commandVocalize(interaction: CommandInteraction) {
 		const text = interaction.options.getString('prompt');
-		const name = interaction.options.getString('voice');
+		let name = interaction.options.getString('voice');
+
+		if (name === 'random') {
+			const voice = this.voices[Math.floor(Math.random() * this.voices.length)];
+			name = voice.name;
+		}
 
 
 		if (text === null || name === null) {
@@ -108,7 +108,7 @@ class Uberduck extends DatabaseModule {
 		}
 
 		interaction.reply({
-			content: 'Generating speech...',
+			content: `Generating speech with with ${bold(name)}...`,
 			ephemeral: true
 		});
 
