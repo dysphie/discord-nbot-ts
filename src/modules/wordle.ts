@@ -4,10 +4,10 @@ import sharp from "sharp";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
 
-// const MIN_WINNER_WORD_RARITY = 1_000_000;
-// const MIN_GUESS_WORD_RARITY = 150_000;
-const MIN_WINNER_WORD_RARITY = 200;
-const MIN_GUESS_WORD_RARITY = 100;
+const MIN_WINNER_WORD_RARITY = 1_000_000;
+const MIN_GUESS_WORD_RARITY = 150_000;
+// const MIN_WINNER_WORD_RARITY = 200;
+// const MIN_GUESS_WORD_RARITY = 100;
 
 const MAX_ATTEMPTS = 6;
 
