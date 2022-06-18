@@ -398,7 +398,7 @@ class Wordle {
 		}
 
 		// Check that the word exists
-		const collection = getMongoDatabase()?.collection('dictionary2');
+		const collection = getMongoDatabase()?.collection('dictionary');
 		if (collection) {
 			const entry = await collection?.findOne(
 				{
@@ -440,7 +440,7 @@ class Wordle {
 			return;
 		}
 
-		const collection = db.collection('wordle2');
+		const collection = db.collection('wordle');
 
 		const game: DbGame = {
 			word: this.winnerWord,
@@ -461,7 +461,7 @@ class Wordle {
 			return null;
 		}
 
-		const collection = db.collection('wordle2');
+		const collection = db.collection('wordle');
 		let entries = await collection.find({ guild: guildId }).toArray();
 
 		entries = entries.sort((a, b) => {
@@ -711,7 +711,7 @@ class Wordle {
 			return;
 		}
 
-		const collection = db.collection('dictionary2');
+		const collection = db.collection('dictionary');
 		const entry = await collection.aggregate([
 			{
 				$match: {
