@@ -19,6 +19,7 @@ class Uberduck extends DatabaseModule {
 
 	constructor(name: string, description: string) {
 		super(name, description);
+		this.voices.push({ displayName: 'Random', name: 'random' });
 		this.cacheVoices().catch(console.error);
 	}
 
@@ -47,6 +48,11 @@ class Uberduck extends DatabaseModule {
 	}
 
 	async createSpeechRaw(text: string, name: string): Promise<Buffer> {
+
+		if (name === 'random') {
+			const voice = this.voices[Math.floor(Math.random() * this.voices.length)];
+			name = voice.name;
+		}
 
 		const resp = await axios({
 			method: 'post',
@@ -147,7 +153,7 @@ class Uberduck extends DatabaseModule {
 
 	async commandAutocomplete(interaction: AutocompleteInteraction) {
 		const focusedValue = interaction.options.getFocused();
-		if (typeof focusedValue !== 'string' || focusedValue.length < 2) {
+		if (typeof focusedValue !== 'string' || focusedValue.length <= 0) {
 			await interaction.respond([]);
 			return;
 		}
