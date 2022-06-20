@@ -30,9 +30,9 @@ const KEYBOARD_LAYOUT = [
 
 interface DbGame {
 	word: string;
-	guesses_list: string[];
+	guesses_list?: string[];
 	guesses: number;
-	elapsed: number;
+	elapsed?: number;
 	players: string[];
 	won: GameState; // this used to be a boolean, now it's a GameState
 	date: Date;
@@ -126,7 +126,7 @@ class WordleStats {
 
 		const entries = await getGameStorage()?.find({
 			guild: guildId,
-			won: { $in: [GameState.Won, GameState.Lost] }
+			won: {$ne: 3 } // FIXME: 3 is InProgress, for some reason the enum is not working
 		}).sort({ date: -1 }).toArray();
 
 		console.log(`Got ${entries?.length} previous games`);
@@ -164,7 +164,7 @@ class WordleStats {
 						bestGuess = entry.guesses;
 					}
 
-					if (entry.elapsed < bestTime) {
+					if (entry.elapsed !== undefined && entry.elapsed < bestTime) {
 						bestTime = entry.elapsed;
 					}
 
@@ -562,14 +562,19 @@ class WordleManager extends DatabaseModule {
 			won: GameState.InProgress
 		});
 
-		if (!dbGame) {
+		if (!dbGame || dbGame.guesses_list === undefined) {
 			return undefined;
 		}
 
 		const game = new Wordle();
 
 		game.solution = dbGame.word;
-		game.elapsedTime = dbGame.elapsed;
+
+		if (dbGame.elapsed !== undefined) {
+			game.elapsedTime = dbGame.elapsed;
+			// TODO: Set start time here
+		}
+
 		game.state = dbGame.won;
 		//console.log(`Got state from db ${dbGame.won}`);
 		game.dbId = dbGame._id;
