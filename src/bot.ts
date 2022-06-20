@@ -20,6 +20,7 @@ import markovify from "./modules/markovify";
 import minidalle from "./modules/minidalle";
 import uberduck from "./modules/uberduck";
 import { wordleMgr } from "./modules/wordle";
+import neynayer from "./modules/neynayer";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -85,6 +86,8 @@ client.once("ready", async () => {
 	emoter.setEmoteGuild("937552002991403132");
 	permathreader.recoverFromSleep(client);
 	reminder.beginRepeatingTask(client);
+
+	await neynayer.beginTask(client);
 
 	// check every 5 minutes
 	setInterval(function () {
@@ -205,6 +208,10 @@ client.on("messageCreate", async (message) => {
 		await yeller.handleMessage(message);
 		await markdownUrl.handleMessage(message);
 		await wordleMgr.handleMessage(message);
+	}
+
+	if (message.content === '.naystats') {
+		await neynayer.commandPfpCount(message);
 	}
 });
 
