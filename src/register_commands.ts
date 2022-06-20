@@ -102,7 +102,7 @@ const wordle = new SlashCommandBuilder()
             .setRequired(false))
     .addStringOption(option => 
         option.setName('starter_words')
-            .setDescription('Words to preload into the game')
+            .setDescription('Space separated list of guesses to preload into the game')
             .setRequired(false))
 
 const emoter = new SlashCommandBuilder()
