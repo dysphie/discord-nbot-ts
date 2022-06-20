@@ -700,9 +700,9 @@ class Dictionary {
 
 	async getRandomWord(length: number, minFrequency: number): Promise<string | null> {
 
-		if (IS_DEBUG) {
-			return 'hello';
-		}
+		// if (IS_DEBUG) {
+		// 	return 'hello';
+		// }
 
 		const collection = await this.getCollection();
 		if (collection === undefined) {
@@ -728,9 +728,9 @@ class Dictionary {
 
 	async wordExists(word: string, minFrequency: number): Promise<boolean> {
 
-		if (IS_DEBUG) {
-			return true;
-		}
+		// if (IS_DEBUG) {
+		// 	return true;
+		// }
 
 		const collection = await this.getCollection();
 		if (collection) {
