@@ -1,15 +1,16 @@
-import { userMention } from "@discordjs/builders";
-import { CommandInteraction, Message, MessageEmbed, TextChannel } from "discord.js";
+import { CommandInteraction, Message, MessageEmbed } from "discord.js";
+import { ObjectId } from "mongodb";
 import sharp from "sharp";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
+import { fmtTime } from "../utils";
 
-const MIN_WINNER_WORD_RARITY = 1_000_000;
-const MIN_GUESS_WORD_RARITY = 150_000;
-// const MIN_WINNER_WORD_RARITY = 200;
-// const MIN_GUESS_WORD_RARITY = 100;
+const IS_DEBUG = true;
 
-const MAX_ATTEMPTS = 6;
+const DEFAULT_WORD_LENGTH = 5;
+
+const MIN_RARITY_SOLUTION = 1_000_000;
+const MIN_RARITY_GUESS = 150_000;
 
 const BOARD_TILE_GAP = 4;
 
@@ -19,827 +20,756 @@ const BOARD_TILE_WIDTH = 32;
 const KB_BUTTON_HEIGHT = 20;
 const KB_BUTTON_WIDTH = 20;
 
-enum WordValidateResult {
-	Valid,
-	Invalid,
-	TooRecent,
-	BadLength,
-	AlreadyGuessed
-}
+const MAX_GUESSES = 6;
 
-enum GuessStatus {
-	Unknown,
-	Absent,
-	Present,
-	Correct
-}
-
-
-const colors = new Map<GuessStatus, string>();
-colors.set(GuessStatus.Unknown, "#42464D");
-colors.set(GuessStatus.Correct, "#15803D");
-colors.set(GuessStatus.Present, "#A16207");
-colors.set(GuessStatus.Absent, "#202225");
-
-interface Guess {
-	letter: string;
-	status: GuessStatus;
-}
-const keyboard: Array<Array<string>> = [
+const KEYBOARD_LAYOUT = [
 	["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
 	["a", "s", "d", "f", "g", "h", "j", "k", "l"],
 	["z", "x", "c", "v", "b", "n", "m"]
 ]
 
-// const KB_MAX_WIDTH = Math.max(...keyboard.map(row => row.length)) * KB_BUTTON_WIDTH;
-// const KB_MAX_LENGTH = keyboard.length * KB_BUTTON_HEIGHT;
-
-const pad = (n: string | number, z = 2) => ('00' + n).slice(-z);
-
-const fmtTime = (miliseconds: number) => {
-
-	const hours = miliseconds / 3.6e6 | 0;
-	const minutes = (miliseconds % 3.6e6) / 6e4 | 0;
-	const seconds = (miliseconds % 6e4) / 1000 | 0;
-	const mils = (miliseconds % 1000);
-
-	let str = '';
-
-	if (hours) {
-		str += `${hours}h `;
-	}
-
-	if (minutes) {
-		str += `${minutes}m `;
-	}
-
-	if (seconds) {
-		str += `${seconds}.${pad(mils, 3)}s`;
-	}
-
-	return str;
-}
-
-
-class WordleManager extends DatabaseModule {
-	games: Array<Wordle> = [];
-
-	async handleMessage(message: Message): Promise<boolean> {
-
-		if (!this.isEnabled(message.guildId)) {
-			return false;
-		}
-
-		if (!message.content.startsWith(">")) {
-			return false;
-		}
-
-		// find game where channel is the same
-		const game = this.games.find(g => g.channel?.id === message.channel.id);
-		if (game) {
-			const continueGame = await game.doGuess(message);
-			if (!continueGame) {
-				this.games = this.games.filter(g => g !== game);
-			}
-		}
-
-		return true;
-	}
-
-	async commandWordle(interaction: CommandInteraction): Promise<boolean> {
-
-		if (!this.isEnabled(interaction.guildId)) {
-			await interaction.reply("This command is disabled in this server.");
-			return false;
-		}
-
-		const game = this.games.find(g => g.channel?.id === interaction.channel?.id);
-		if (game) {
-			await game.displayGraphics(interaction);
-			return false;
-		}
-
-		const wordle = new Wordle();
-		await wordle.beginGame(interaction);
-		this.games.push(wordle);
-		return true;
-	}
-
-	async commandStats(interaction: CommandInteraction): Promise<void> {
-
-		if (!this.isEnabled(interaction.guildId)) {
-			await interaction.reply("This command is disabled in this server.");
-			return;
-		}
-
-		const statsType = interaction.options.getString("type");
-		if (!statsType) {
-			await interaction.reply(`You must specify a type`);
-			return;
-		}
-
-		switch (statsType) {
-			case "fastest": {
-				await this.commandByTime(interaction, true);
-				break;
-			}
-			case "lost_words": {
-				await this.commandLost(interaction);
-				break;
-			}
-			case "slowest": {
-				await this.commandByTime(interaction, false);
-				break;
-			}
-			case "longest_words": {
-				await this.commandLongestWords(interaction);
-				break;
-			}
-		}
-	}
-
-	async commandLost(interaction: CommandInteraction): Promise<void> {
-
-		const wordleCollection = getMongoDatabase()?.collection("wordle");
-		if (wordleCollection === undefined) {
-			await interaction.reply("No games played yet");
-			return;
-		}
-
-		const lostGames = await wordleCollection.find({
-			won: false,
-			guild: interaction.guildId
-		}).toArray();
-
-		if (lostGames.length === 0) {
-			await interaction.reply("No games lost yet, good job");
-			return;
-		}
-
-		const lostGamesEmbed = new MessageEmbed();
-
-		// create a comma separated list of 'winner_word' in lostGames
-		const lostGamesList = lostGames.map(g => `\`${g.word}\``).join(` `);
-
-		lostGamesEmbed.setTitle(`Lost games: ${lostGames.length}`);
-		lostGamesEmbed.setDescription(`${lostGamesList}`);
-		lostGamesEmbed.setColor("#ff0000");
-
-		await interaction.reply({ embeds: [lostGamesEmbed] });
-	}
-
-	async commandLongestWords(interaction: CommandInteraction): Promise<void> {
-
-		const wordleCollection = getMongoDatabase()?.collection("wordle");
-		if (wordleCollection === undefined) {
-			await interaction.reply("Can't access stats right now");
-			return;
-		}
-
-		const longestWords = await wordleCollection.aggregate([
-			{ $match: { won: true } },
-			{
-				$project: {
-					"word": 1,
-					"players": 1,
-					"word_length": { $strLenCP: "$word" }
-				}
-			},
-			{ $sort: { "word_length": -1 } },
-			{ $project: { "word_length": 0 } },
-			{ $limit: 10 }
-		]).toArray();
-
-
-		if (longestWords.length === 0) {
-			await interaction.reply("No games played yet");
-			return;
-		}
-
-		const embed = new MessageEmbed();
-
-		embed.setTitle("Longest words guessed");
-		embed.setColor("#6aaa64");
-
-		let content = ''
-		for (let i = 0; i < longestWords.length; i++) {
-			const game = longestWords[i];
-
-			// remove repeated entries from game.players
-			game.players = [...new Set(game.players)];
-
-			content += `${i + 1}. **${game.word}** in ${fmtTime(game.elapsed)} by `;
-			// TODO: Remove repeated players from here
-			game.players.map(((player: string) => {
-				content += `${userMention(player)} `;
-			}));
-
-			content += '\n';
-		}
-
-		embed.setDescription(content);
-
-		await interaction.reply({ embeds: [embed] });
-	}
-
-	async commandByTime(interaction: CommandInteraction, sortByLowest: boolean): Promise<void> {
-
-		const wordleCollection = getMongoDatabase()?.collection("wordle");
-		if (wordleCollection === undefined) {
-			await interaction.reply("No games played yet");
-			return;
-		}
-
-		// get the top 10 games with the lowest 'elapsed' time
-		const topGames = await wordleCollection
-			.find({ elapsed: { $exists: true } })
-			.sort({ elapsed: sortByLowest ? 1 : -1 }).limit(10).toArray();
-
-		const embed = new MessageEmbed();
-		embed.setTitle(`${sortByLowest ? "Fastest" : "Slowest"} wordle games`);
-
-		let content = '';
-
-		for (let i = 0; i < topGames.length; i++) {
-			const game = topGames[i];
-
-			// remove repeated entries from game.players
-			game.players = [...new Set(game.players)];
-
-			content += `${i + 1}. **${game.word}** in ${fmtTime(game.elapsed)} by `;
-			// TODO: Remove repeated players from here
-			game.players.map(((player: string) => {
-				content += `${userMention(player)} `;
-			}));
-
-			content += '\n';
-		}
-
-		embed.setDescription(content);
-
-		// Lil easter egg for my guild, picture of undercoverdudes
-		if (interaction.guildId === "336213135193145344" || interaction.guildId === "937552002991403132") {
-			embed.setThumbnail("https://i.imgur.com/V6iGmQW.png");
-		}
-
-		await interaction.reply({
-			embeds: [embed]
-		});
-	}
-}
-
 interface DbGame {
-	word: string,
-	guesses: number,
-	players: Array<string>,
-	date: Date,
-	won: boolean,
-	guild: string
-	elapsed: number
+	word: string;
+	guesses_list: string[];
+	guesses: number;
+	elapsed: number;
+	players: string[];
+	won: GameState; // this used to be a boolean, now it's a GameState
+	date: Date;
+	guild: string;
+}
+
+enum GuessStatus {
+	Unknown,
+	Correct,
+	Elsewhere,
+	Absent
+}
+
+enum GameState {
+	Lost = 0,
+	Won = 1,
+	NotStarted,
+	InProgress,
+	Error
+}
+
+enum WordGuessResult {
+	Accepted,
+	TooRecent,
+	Cooldown,
+	NotAWord,
+	BadLength,
+	AlreadyGuessed,
+	BadState
+}
+
+
+const getGameStorage = () => {
+	return getMongoDatabase()?.collection<DbGame>('wordle');
+}
+
+const getStatsStorage = () => {
+	return getMongoDatabase()?.collection<GuildStats>('wordle.stats');
+}
+
+const guessStatusToColor = (guessStatus: GuessStatus) => {
+	switch (guessStatus) {
+		case GuessStatus.Correct:
+			return "#006843";
+		case GuessStatus.Elsewhere:
+			return "#C2410C";
+		case GuessStatus.Absent:
+			return "#202225";
+		default:
+			return "#42464D";
+	}
 }
 
 interface GuildStats {
 	totalPlayed: number;
 	totalWon: number;
-	guessDist: Array<number>;
-	maxWinStreak: number;
-	currentWinStreak: number;
+	winPct: number;
+	avgGuesses: number;
+	bestGuess: number;
+	bestStreak: number;
+	currentStreak: number;
 	bestTime: number;
+	guild: string;
 }
 
-class Wordle {
-	lastGuessTime: Date | null;
-	guesses: Array<Array<Guess>>;
-	playerHistory: Array<string>;
-	winnerWord: string;
-	channel: TextChannel | null;
-	keyboardColors: Map<string, GuessStatus>;
-	numAttempts: number;
-	won: boolean;
-	startTime: Date;
+class WordleStats {
 
-
-	constructor() {
-		this.startTime = new Date();
-		this.lastGuessTime = null;
-		this.channel = null;
-		this.numAttempts = 0;
-		this.winnerWord = '';
-		this.guesses = [];
-		this.playerHistory = [];
-		this.keyboardColors = new Map();
-		this.won = false;
-	}
-
-	async beginGame(interaction: CommandInteraction): Promise<void> {
-
-		let wantedLen = interaction.options.getInteger('length');
-		if (wantedLen === null) {
-			wantedLen = 5;
-		} else if (wantedLen < 4 || wantedLen > 10) {
-			await interaction.reply(`Word length must be between 4 and 10 characters.`);
-			return;
+	async getStats(guildId: string): Promise<GuildStats> {
+		const stats = await getStatsStorage()?.findOne({ guild: guildId });
+		if (!stats) {
+			return {
+				totalPlayed: 0,
+				totalWon: 0,
+				winPct: 0,
+				avgGuesses: 0,
+				bestGuess: 0,
+				bestStreak: 0,
+				currentStreak: 0,
+				bestTime: 0,
+				guild: guildId
+			};
 		}
-
-		this.channel = interaction.channel as TextChannel;
-		await this.generateRandomWord(wantedLen);
-
-		if (this.winnerWord === '') {
-			await interaction.reply('No words found with that length. Try again.');
-			return;
-		}
-
-		console.log("Starting a new game of wordle with word " + this.winnerWord);
-
-		const sent = await interaction.reply({
-			files: await this.getAttachments(),
-			content: "A new game of wordle has started!",
-			fetchReply: true
-		});
-
-		if (sent) {
-			this.startTime = new Date();
-		}
-	}
-
-	async getAttachments() {
-		return [
-			{
-				attachment: await this.buildBoardSvg(),
-				name: 'board.png'
-			},
-			{
-				attachment: await this.createPreviewKeyboard(),
-				name: 'wordle_keyboard.png'
-			}
-		];
-	}
-
-	async validateWord(word: string): Promise<WordValidateResult> {
-
-		if (word.length != this.winnerWord?.length) {
-			//console.log(`Word ${word} is not the same length as the winner word`);
-			return WordValidateResult.BadLength;
-		}
-
-		for (let i = 0; i < this.guesses.length; i++) {
-			const prevWord = this.guesses[i].map(g => g.letter).join('');
-			if (word === prevWord) {
-				return WordValidateResult.AlreadyGuessed;
-			}
-		}
-
-		// Check that the word wasn't guessed recently
-		if (this.numAttempts === 0) {
-			const isOriginal = await this.isOriginalWord(word);
-			if (!isOriginal) {
-				return WordValidateResult.TooRecent;
-			}
-		}
-
-		// Check that the word exists
-		const collection = getMongoDatabase()?.collection('dictionary');
-		if (collection) {
-			const entry = await collection?.findOne(
-				{
-					w: word,
-					f: { $gt: MIN_GUESS_WORD_RARITY }
-				}
-			);
-			if (entry === null) {
-				return WordValidateResult.Invalid;
-			}
-		}
-
-
-		return WordValidateResult.Valid;
-	}
-
-	// Protection against people using the same starter words
-	async isOriginalWord(word: string): Promise<boolean> {
-
-		const recentWords = getMongoDatabase()?.collection('wordle.recent');
-		const result = await recentWords?.updateOne({
-			w: word,
-			d: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-			g: this.channel?.guild.id
-		}, { $set: { w: word, d: new Date(), g: this.channel?.guild.id } }, { upsert: true });
-
-		if (result?.upsertedCount) {
-			//console.log(`New word ${word} added to recent words`);
-			return true;
-		} else {
-			//console.log(`Word ${word} already exists in recent words`);
-			return false;
-		}
-	}
-
-	async saveToDb(elapsed: number) {
-		const db = getMongoDatabase();
-		if (!db || !this.channel) {
-			return;
-		}
-
-		const collection = db.collection('wordle');
-
-		const game: DbGame = {
-			word: this.winnerWord,
-			guesses: this.numAttempts,
-			players: this.playerHistory,
-			date: new Date(),
-			won: this.won,
-			guild: this.channel.guild.id,
-			elapsed: elapsed
-		}
-
-		await collection.insertOne(game);
-	}
-
-	async getStatsForGuild(guildId: string): Promise<GuildStats | null> {
-		const db = getMongoDatabase();
-		if (!db) {
-			return null;
-		}
-
-		const collection = db.collection('wordle');
-		let entries = await collection.find({ guild: guildId }).toArray();
-
-		entries = entries.sort((a, b) => {
-			if (a.date < b.date) {
-				return -1;
-			}
-			if (a.date > b.date) {
-				return 1;
-			}
-			return 0;
-		});
-
-		let newestStreak = 0;
-		let currentStreak = 0;
-		let longestStreak = 0;
-		let resetOnce = false;
-
-		// iterate entries backwards
-		for (let i = entries.length - 1; i >= 0; i--) {
-			if (entries[i].won) {
-				currentStreak++;
-
-				if (currentStreak > longestStreak) {
-					longestStreak = currentStreak;
-				}
-
-				if (!resetOnce) {
-					newestStreak = currentStreak;
-				}
-
-			} else {
-				currentStreak = 0;
-				resetOnce = true;
-			}
-		}
-
-		if (!resetOnce) {
-			newestStreak = currentStreak;
-		}
-
-		const numAttempts = new Array(MAX_ATTEMPTS).fill(0);
-		// fill in the array with the number of attempts
-		for (let i = 0; i < entries.length; i++) {
-			const guessIndex = entries[i].guesses - 1;
-			numAttempts[guessIndex]++;
-			//console.log(`in ${entries[i].guesses} attempts: ${numAttempts[entries[i].guesses]}`);
-		}
-
-		// find entry with lowest 'bt'
-		let bestTime = Infinity;
-		for (let i = 0; i < entries.length; i++) {
-			if (entries[i].won && entries[i].elapsed < bestTime) {
-				bestTime = entries[i].elapsed;
-			}
-		}
-
-
-		const numPlayed = entries.length;
-		const numWon = entries.filter(e => e.won).length;
-
-		const stats = {
-			totalPlayed: numPlayed,
-			totalWon: numWon,
-			guessDist: numAttempts,
-			maxWinStreak: longestStreak,
-			currentWinStreak: newestStreak,
-			bestTime: bestTime
-		}
-
-		//console.log(stats);
 		return stats;
 	}
 
-	async doGuess(message: Message): Promise<boolean> {
-		const guess = message.content.substring(1).toLowerCase();
-
-		const validResult = await this.validateWord(guess);
-
-		switch (validResult) {
-			case WordValidateResult.AlreadyGuessed: {
-				await message.reply("❌ You've already guessed that word");
-				return true;
-			}
-			case WordValidateResult.TooRecent: {
-				await message.reply("❌ You've recently started a game with that word");
-				return true;
-			}
-			case WordValidateResult.BadLength:
-			case WordValidateResult.Invalid: {
-				await message.react('❌');
-				return true;
-			}
-			case WordValidateResult.Valid: {
-
-				// apply cooldown if someone else guessed a word less than 3 seconds ago
-				// this is to avoid accidental guesses when the result has been updated
-				const lastPlayerId = this.playerHistory[this.playerHistory.length - 1];
-				if (lastPlayerId !== message.member?.id) {
-					// if less than 3 seconds have passed since the last guess, don't allow it
-					const curTime = new Date();
-					if (this.lastGuessTime && curTime.getTime() - this.lastGuessTime.getTime() < 3000) {
-						await message.react('⏱');
-						return true;
-					}
-
-					this.lastGuessTime = curTime;
-				}
-			}
-		}
-
-		// TODO: disallow if we've already guessed this word
-
-		this.playerHistory.push(message.author.id);
-
-		const maxlen = this.winnerWord.length;
-
-		const lineGuess = new Array(maxlen);
-
-		for (let i = 0; i < maxlen; i++) {
-			lineGuess[i] = { letter: guess[i], status: GuessStatus.Unknown };
-		}
-
-		const guessArr = guess.split('');
-		const filteredWord = this.winnerWord.split('');
-
-		// Find all full matches
-		for (let i = 0; i < maxlen; i++) {
-			if (filteredWord[i] === guessArr[i]) {
-				guessArr[i] = '\0';
-				filteredWord[i] = '\0';
-				lineGuess[i].status = GuessStatus.Correct;
-				this.updateKeyboard(lineGuess[i]);
-			}
-		}
-
-		// Find all partial matches
-		for (let i = 0; i < maxlen; i++) {
-			if (filteredWord[i] === '\0' || guessArr[i] === '\0') {
-				continue;
-			}
-
-			if (filteredWord.includes(guessArr[i])) {
-				lineGuess[i].status = GuessStatus.Present;
-				this.updateKeyboard(lineGuess[i]);
-			} else {
-				lineGuess[i].status = GuessStatus.Absent;
-				this.updateKeyboard(lineGuess[i]);
-			}
-		}
-
-		this.guesses.push(lineGuess);
-		this.numAttempts++;
-
-		await this.displayGraphics(message);
-
-		let description = '';
-
-		let continueGame = true;
-		if (guess === this.winnerWord) {
-			this.won = true;
-			continueGame = false;
-		} else if (this.numAttempts >= MAX_ATTEMPTS) {
-			description = `The word was \`${this.winnerWord}\``;
-			continueGame = false;
-		}
-
-		if (!continueGame && this.channel) {
-			const elapsed = new Date().getTime() - this.startTime.getTime();
-			await this.saveToDb(elapsed);
-			await this.printStats(elapsed, this.won, description);
-		}
-
-		return continueGame;
+	async saveStats(guildId: string, stats: GuildStats) {
+		await getStatsStorage()?.updateOne({ guild: guildId }, { $set: stats }, { upsert: true });
 	}
 
-	async displayGraphics(message: Message | CommandInteraction) {
+	async recomputeStats(guildId: string): Promise<GuildStats> {
 
-		await message.channel?.send({
-			files: await this.getAttachments()
-		})
-	}
+		const entries = await getGameStorage()?.find({
+			guild: guildId,
+			won: { $in: [GameState.Won, GameState.Lost] }
+		}).sort({ date: -1 }).toArray();
 
-	async printStats(elapsed: number, didWin: boolean, description: string) {
+		console.log(`Got ${entries?.length} previous games`);
 
-		if (!this.channel) {
-			return;
-		}
-
-		const stats = await this.getStatsForGuild(this.channel.guild.id);
-		if (!stats) {
-			return;
-		}
-
-		let bestGuess = -1;
-		for (let i = 0; i < stats.guessDist.length; i++) {
-			if (stats.guessDist[i] > 0) {
-				bestGuess = i + 1;
-				break;
-			}
-		}
+		const guessDistribution = new Array(MAX_GUESSES).fill(0);
 
 		let totalGuesses = 0;
-		for (let i = 0; i < stats.guessDist.length; i++) {
-			totalGuesses += stats.guessDist[i] * (i + 1);
+		let totalWon = 0;
+		let currentStreak = 0;
+		let bestStreak = 0;
+		let bestGuess = Infinity;
+		let bestTime = Infinity;
+		let avgGuesses = Infinity;
+		let totalPlayed = 0;
+
+		if (entries) {
+			entries.forEach(entry => {
+
+				totalPlayed++;
+				if (entry.won == GameState.Won) {
+
+					// Update total won
+					totalWon++;
+
+					// Update current streak
+					currentStreak++;
+
+					// Update best streak
+					if (currentStreak > bestStreak) {
+						bestStreak = currentStreak;
+					}
+
+					// Update best guess
+					if (entry.guesses < bestGuess) {
+						bestGuess = entry.guesses;
+					}
+
+					if (entry.elapsed < bestTime) {
+						bestTime = entry.elapsed;
+					}
+
+					totalGuesses += entry.guesses;
+
+					// Update average guess
+					guessDistribution[entry.guesses]++;
+
+				} else {
+					currentStreak = 0;
+				}
+			});
 		}
 
-		//const guessDist = `1st: ${stats.guessDist[0]} | 2nd: ${stats.guessDist[1]} | 3rd: ${stats.guessDist[2]} | 4th: ${stats.guessDist[3]} | 5th: ${stats.guessDist[4]} | 6th: ${stats.guessDist[5]}`;
+		if (totalPlayed > 0) {
+			avgGuesses = totalGuesses / totalPlayed;
+		} else {
+			avgGuesses = 0;
+		}
 
-		const avgGuessAmt = totalGuesses / stats.totalPlayed;
-		const winPct = (stats.totalWon / stats.totalPlayed * 100).toFixed(2);
+		const winPct = totalPlayed > 0 ? (totalWon / totalPlayed * 100) : 0;
+
+		const stats = {
+			totalPlayed: totalPlayed,
+			totalWon: totalWon,
+			avgGuesses: avgGuesses,
+			bestGuess: bestGuess,
+			bestStreak: bestStreak,
+			currentStreak: currentStreak,
+			bestTime: bestTime,
+			guild: guildId,
+			winPct: winPct
+		}
+
+		await wordleStats.saveStats(guildId, stats);
+		return stats;
+	}
+}
+
+class WordleInterface {
+
+	static async replyToWordleInteraction(msg: Message | CommandInteraction, game: Wordle, guildId: string) {
+
+		const files = [{
+			attachment: await WordleInterface.buildMainBoard(game),
+			name: 'board.png'
+		}];
+
+		const embeds = [];
+
+		if (game.state == GameState.InProgress) {
+			files.push({
+				attachment: await WordleInterface.buildKeyboard(game),
+				name: 'wordle_keyboard.png'
+			});
+		}
+		else {
+
+			const stats = await wordleStats.recomputeStats(guildId);
+			const embed = await WordleInterface.buildStatsEmbed(game, guildId, stats);
+
+			if (game.state == GameState.Won) {
+				embed.setTitle('You won!');
+				embed.setColor(guessStatusToColor(GuessStatus.Correct));
+			}
+			else if (game.state == GameState.Lost) {
+				embed.setTitle(`You lost!`);
+				embed.setDescription(`The word was: \`${game.solution}\``);
+				embed.setColor('#ff0000');
+			}
+
+			embeds.push(embed);
+		}
+
+		if (msg instanceof CommandInteraction) {
+			await msg.reply({
+				files: files,
+				embeds: embeds
+			});
+		}
+		else {
+			await msg.channel.send({
+				embeds: embeds,
+				files: files
+			});
+		}
+	}
+
+	static async buildStatsEmbed(wordle: Wordle, guildId: string, stats: GuildStats) {
 
 		const embed = new MessageEmbed();
 
-		if (this.won) {
-			embed.setTitle('You won!');
-			embed.setColor('#006843');
-		} else {
-			embed.setTitle('You lost!');
-			embed.setColor('#ff0000');
-		}
-
 		// get the elapsed time 
-		description += `\n\n**Elapsed**: \`${fmtTime(elapsed)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
-		if (elapsed == stats.bestTime) {
+		let description = `\n\n**Elapsed**: \`${fmtTime(wordle.elapsedTime)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
+		if (wordle.elapsedTime == stats.bestTime) {
 			description += ' 🏅';
 		}
 
-		description += `\n**Winrate**: \`${winPct}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
-		description += `\n**Avg. Guesses**: \`${avgGuessAmt.toFixed(1)}\` (Best: \`${bestGuess}\`)`;
+		description += `\n**Winrate**: \`${Math.round(stats.winPct)}%\` (\`${stats.totalWon}/${stats.totalPlayed}\`)`;
+		description += `\n**Avg. Guesses**: \`${stats.avgGuesses.toFixed(1)}\` (Best: \`${stats.bestGuess}\`)`;
+		if (wordle.guesses.length == stats.bestGuess) {
+			description += ' 🏅';
+		}
 
-		description += `\n**Streak**: \`${stats.currentWinStreak}\` (Best: \`${stats.maxWinStreak}\`)`;
-		if (stats.currentWinStreak == stats.maxWinStreak) {
+		description += `\n**Streak**: \`${stats.currentStreak}\` (Best: \`${stats.bestStreak}\`)`;
+		if (stats.currentStreak == stats.bestStreak) {
 			description += ' 🏅';
 		}
 
 		embed.setDescription(description);
-
-		await this.channel.send({
-			embeds: [embed]
-		});
+		return embed;
 	}
 
-	async generateRandomWord(length: number) {
-
-		const db = getMongoDatabase();
-		if (!db) {
-			return;
-		}
-
-		const collection = db.collection('dictionary');
-		const entry = await collection.aggregate([
-			{
-				$match: {
-					l: length,
-					f: { $gt: MIN_WINNER_WORD_RARITY }
-				}
-			},
-			{ $sample: { size: 1 } }
-		]).toArray();
-
-		if (entry.length === 0) {
-			return;
-		}
-		this.winnerWord = entry[0]['w'];
-	}
-
-	updateKeyboard(guess: Guess) {
-		const curStatus = this.keyboardColors.get(guess.letter);
-		if (!curStatus || guess.status > curStatus) {
-			this.keyboardColors.set(guess.letter, guess.status);
-		}
-	}
-
-	async createPreviewKeyboard() {
+	static async buildKeyboard(wordle: Wordle) {
 
 		let maxWidth = 0;
 		let svgContent = '<svg>';
 
-		keyboard.forEach((row, rowIndex) => {
+		KEYBOARD_LAYOUT.forEach((row, rowIndex) => {
 
-			const rowWidth = row.length * KB_BUTTON_WIDTH + (row.length - 1) * BOARD_TILE_GAP;
-			if (rowWidth > maxWidth) {
-				maxWidth = rowWidth;
+			const rowLen = row.length;
+			const maxRowWidth = rowLen * KB_BUTTON_WIDTH + (rowLen - 1) * BOARD_TILE_GAP;
+			if (maxRowWidth > maxWidth) {
+				maxWidth = maxRowWidth;
 			}
 
-			//const rowWidth = row.length * KB_BUTTON_WIDTH + (row.length - 1) * BOARD_TILE_GAP;
-			// offset from maxWidth to center the row
-			//const rowX = (KB_MAX_WIDTH - rowWidth) / 2;
-
 			row.forEach((key, keyIndex) => {
+
 				const x = keyIndex * (KB_BUTTON_WIDTH + BOARD_TILE_GAP);
 				const y = rowIndex * (KB_BUTTON_HEIGHT + BOARD_TILE_GAP);
 
-				//console.log(`Requesting color for ${key}`);
-				const guessStatus = this.keyboardColors.get(key) || GuessStatus.Unknown;
+				const guessStatus = wordle.keyboard.get(key) || GuessStatus.Unknown;
 
-				const color = colors.get(guessStatus);
+				const color = guessStatusToColor(guessStatus);
 				svgContent += `
-          <rect x="${x}" y="${y}" width="${KB_BUTTON_WIDTH}" height="${KB_BUTTON_HEIGHT}" fill="${color}" />
-          <text 
-            x="${x + KB_BUTTON_WIDTH / 2}" 
-            y="${y + KB_BUTTON_HEIGHT / 2 + 4.5}" 
-            font-family="Arial"
-            font-weight="bold"
-            text-anchor="middle" 
-            fill="white">
-            ${key.toUpperCase()}
-          </text>
-        `;
+					<rect 
+						x="${x}" 
+						y="${y}" 
+						width="${KB_BUTTON_WIDTH}" 
+						height="${KB_BUTTON_HEIGHT}" 
+						fill="${color}"
+						/>
+					<text 
+						x="${x + KB_BUTTON_WIDTH / 2}" 
+						y="${y + KB_BUTTON_HEIGHT / 2 + 4.5}" 
+						font-family="Arial"
+						font-weight="bold"
+						text-anchor="middle" 
+						fill="white"
+						>
+						${key.toUpperCase()}
+					</text>
+					`;
 			}
 			);
 		});
 
 		svgContent += '</svg>';
-
 		const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
 		return buffer;
 	}
 
-	async buildBoardSvg() {
+	static async buildMainBoard(wordle: Wordle) {
 
-		if (this.winnerWord === null) {
-			throw new Error('No winner word');
-		}
+		const wordLen = wordle.solution.length;
+		const currentGuesses = wordle.guesses.length;
 
-		const wordLen = this.winnerWord.length;
 
-		const width = this.winnerWord.length * BOARD_TILE_WIDTH + (wordLen - 1) * BOARD_TILE_GAP;
-		const height = MAX_ATTEMPTS * BOARD_TILE_HEIGHT + (MAX_ATTEMPTS - 1) * BOARD_TILE_GAP;
+		let svgContent = '<svg>';
 
-		let svgContent = `<svg width="${width}" height="${height}">`;
-
-		for (let i = 0; i < MAX_ATTEMPTS; i++) {
+		for (let i = 0; i < MAX_GUESSES; i++) {
 			for (let j = 0; j < wordLen; j++) {
 
 				const x = j * (BOARD_TILE_WIDTH + BOARD_TILE_GAP);
 				const y = i * (BOARD_TILE_HEIGHT + BOARD_TILE_GAP);
 
-				if (i < this.numAttempts) {
+				// If these rows have a guess made for them, render it with the appropiate colors
+				if (i < currentGuesses) {
 
-					const guess = this.guesses[i][j];
-					const color = colors.get(guess.status);
+					const resultRow = wordle.guessResults[i];
+					const guess = wordle.guesses[i].charAt(j);
+					const guessStatus = resultRow[j];
+					const color = guessStatusToColor(guessStatus);
 					const fontSize = 18;
 					svgContent += `
-            <g>
-              <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${color}" />
-              <text
+	          <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${color}" />
+	          <text
+	              font-size="${fontSize}"
+	              font-family="Arial"
+	              font-weight="bold"
 				  fill="white"
-                  font-size="${fontSize}"
-                  font-family="Arial"
-                  font-weight="bold"
-                  x="${x + BOARD_TILE_WIDTH * 0.5}"
-                  y="${y + BOARD_TILE_HEIGHT * 0.5 + 5.5}"
-                  dominant-baseline="central"
-                  text-anchor="middle">
-                ${guess.letter.toUpperCase()}
-              </text>
-            </g>
-          `;
+	              x="${x + BOARD_TILE_WIDTH * 0.5}"
+	              y="${y + BOARD_TILE_HEIGHT * 0.5 + 5.5}"
+	              dominant-baseline="central"
+	              text-anchor="middle">
+	            ${guess.toUpperCase()}
+	          </text>
+	      `;
 				}
+				// Else just render empty tiles
 				else {
+					const [color, opacity] = guessStatusToColor(GuessStatus.Unknown);
+
 					svgContent += `
-          <g>
-            <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${colors.get(GuessStatus.Unknown)}" />
-          </g>
-          `
+	        	<rect 
+					x="${x}" 
+					y="${y}" 
+					width="${BOARD_TILE_WIDTH}" 
+					height="${BOARD_TILE_HEIGHT}" 
+					fill="${color}" fill-opacity="${opacity}"/>
+	      `
 				}
 			}
 		}
 
 		svgContent += `</svg>`;
 		const buffer = await sharp(Buffer.from(svgContent)).toBuffer();
-
-		// padd with transparency to the right
 		return buffer;
 	}
 }
 
-const wordle = new WordleManager('wordle', 'Play games of Wordle');
 
-export default wordle;
+class WordleManager extends DatabaseModule {
+
+	onGoing: Map<string, Wordle> = new Map<string, Wordle>();
+
+	async commandWordle(interaction: CommandInteraction) {
+
+		if (!interaction.guildId) {
+			await interaction.reply('This command can only be used in a server');
+			return;
+		}
+
+		let wordle = await this.getOnGoingWordle(interaction.guildId);
+		if (!wordle) {
+
+			wordle = new Wordle();
+
+			let wantedLen = interaction.options.getInteger('length');
+			if (wantedLen === null) {
+				wantedLen = DEFAULT_WORD_LENGTH;
+			}
+
+			this.onGoing.set(interaction.guildId, wordle);
+
+			try {
+				await wordle.beginGame(wantedLen);
+			}
+			catch (err) {
+				await interaction.reply('The server has gone up in flames sorry');
+				return;
+			}
+
+			const starterWordCmd = interaction.options.getString('starter_words');
+			if (starterWordCmd !== null) {
+				const starterWords = starterWordCmd.split(/\s+/);
+
+				for (const word of starterWords) {
+					await wordle.performGuess(word, true, interaction.user.id);
+				}
+			}
+		}
+
+		this.gameToDb(interaction.guildId);
+		await WordleInterface.replyToWordleInteraction(interaction, wordle, interaction.guildId);
+
+		if (wordle.state !== GameState.InProgress) {
+			this.onGoing.delete(interaction.guildId);
+		}
+	}
+
+	async getOnGoingWordle(guildId: string) {
+
+		let wordle = this.onGoing.get(guildId);
+
+		// Try getting a game from the db
+		if (wordle) {
+			return wordle;
+		}
+
+		wordle = await this.gameFromDb(guildId);
+		if (wordle) {
+			console.log(`Added wordle from db ${guildId} to ongoing`);
+			this.onGoing.set(guildId, wordle);
+			return wordle;
+		}
+
+		return null;
+	}
+
+	async handleMessage(message: Message) {
+
+		if (!message.guildId || (!message.content.startsWith('>') && !message.content.startsWith('.'))) {
+			return;
+		}
+
+		const word = message.content.substring(1);
+
+		const wordle = await this.getOnGoingWordle(message.guildId);
+		if (!wordle) {
+			console.log(`Ignoring ${message.content} as no wordle is in progress`);
+			return;
+		}
+
+		// Process guess here
+		const result = await wordle.performGuess(word, true, message.author.id);
+
+		switch (result) {
+			case WordGuessResult.BadLength:
+			case WordGuessResult.NotAWord:
+				{
+					await message.react('❌');
+					//wordle.runTimer();
+					break;
+				}
+			case WordGuessResult.TooRecent:
+				{
+					const embed = new MessageEmbed();
+					embed.setDescription(`❌ You've recently started a game with this word`);
+					embed.setColor(0xFF0000);
+					await message.reply({
+						embeds: [embed]
+					});
+
+					//wordle.runTimer();
+					break;
+				}
+			case WordGuessResult.AlreadyGuessed:
+				{
+					const embed = new MessageEmbed();
+					embed.setDescription(`❌ You've already guessed this word`);
+					embed.setColor(0xFF0000);
+					await message.reply({
+						embeds: [embed]
+					});
+
+					//wordle.runTimer();
+					break;
+				}
+			case WordGuessResult.Accepted:
+				{
+					this.gameToDb(message.guildId);
+					await WordleInterface.replyToWordleInteraction(message, wordle, message.guildId);
+					break;
+				}
+		}
+
+		if (wordle.state !== GameState.InProgress) {
+			this.onGoing.delete(message.guildId);
+		}
+	}
+
+	async gameToDb(guildId: string) {
+
+		const dbGames = getGameStorage();
+		if (!dbGames) {
+			console.log('gameToDb: dbGames is null');
+			return;
+		}
+
+		const game = this.onGoing.get(guildId);
+		if (!game) {
+			return;
+		}
+
+		const dbGame: DbGame = {
+			word: game.solution,
+			guesses: game.guesses.length,
+			guesses_list: game.guesses,
+			elapsed: game.elapsedTime,
+			players: game.participants,
+			won: game.state,
+			date: new Date(),
+			guild: guildId
+		};
+
+		if (game.dbId !== null) {
+			dbGames.updateOne({ _id: game.dbId }, { $set: dbGame }, { upsert: true });
+		}
+		else {
+			const dbId = await dbGames.insertOne(dbGame);
+			game.dbId = dbId.insertedId;
+		}
+	}
+
+	async gameFromDb(guildId: string): Promise<Wordle | undefined> {
+
+		const dbGames = getGameStorage();
+		if (!dbGames) {
+			console.log('gameFromDb: dbGames is null');
+			return;
+		}
+
+		const dbGame = await dbGames.findOne({
+			guild: guildId,
+			won: GameState.InProgress
+		});
+
+		if (!dbGame) {
+			return undefined;
+		}
+
+		const game = new Wordle();
+
+		game.solution = dbGame.word;
+		game.elapsedTime = dbGame.elapsed;
+		game.state = dbGame.won;
+		//console.log(`Got state from db ${dbGame.won}`);
+		game.dbId = dbGame._id;
+
+		// Rebuild the board
+		dbGame.guesses_list.forEach(guess => {
+			game.performGuess(guess,
+				false, // Don't validate guesses, assume they've been before
+				'0'); // TODO: userids
+		});
+
+		game.participants = dbGame.players;
+
+		return game;
+	}
+
+}
+
+class Wordle {
+
+	dbId: ObjectId | null = null;
+	state: GameState = GameState.NotStarted;
+	solution = '';
+	guesses: string[] = [];
+	guessResults: Array<Array<GuessStatus>> = [];
+	participants: string[] = [];
+	keyboard: Map<string, GuessStatus> = new Map<string, GuessStatus>();
+	startTime = 0;
+	elapsedTime = 0;
+
+	async beginGame(length: number): Promise<boolean> {
+
+		const chosenWord = await dictionary.getRandomWord(length, MIN_RARITY_SOLUTION);
+		if (!chosenWord) {
+			return false;
+		}
+
+		console.log(`Started wordle game with word ${chosenWord}`);
+
+		this.solution = chosenWord;
+		this.state = GameState.InProgress;
+		this.startTime = Date.now();
+		return true;
+	}
+
+	async performGuess(guess: string, validate: boolean, playerId: string): Promise<WordGuessResult> {
+
+		//console.log(`Guessing word ${guess}`);
+		if (this.state !== GameState.InProgress) {
+			return WordGuessResult.BadState;
+		}
+
+		if (guess.length !== this.solution.length) {
+			return WordGuessResult.BadLength;
+		}
+
+		// check if this word is already guessed
+		if (this.guesses.indexOf(guess) !== -1) {
+			return WordGuessResult.AlreadyGuessed;
+		}
+
+		if (validate) {
+			const exists = await dictionary.wordExists(guess, MIN_RARITY_GUESS);
+			if (!exists) {
+				return WordGuessResult.NotAWord;
+			}
+		}
+
+		const solutionChars = [...this.solution];
+		const result: GuessStatus[] = Array(5).fill(GuessStatus.Absent);
+
+		// Find greens
+		[...guess].forEach((c, i) => {
+			if (solutionChars[i] === c) {
+				solutionChars[i] = '';
+				result[i] = GuessStatus.Correct;
+				this.keyboard.set(c, GuessStatus.Correct);
+			}
+		});
+
+		// Find yellows
+		[...guess].forEach((c, i) => {
+
+			if (result[i] === GuessStatus.Correct) {
+				return;
+			}
+
+			const idx = solutionChars.indexOf(c);
+			if (idx !== -1) {
+				solutionChars[idx] = '';
+				result[i] = GuessStatus.Elsewhere;
+
+				if (!this.keyboard.has(c)) {
+					this.keyboard.set(c, GuessStatus.Elsewhere);
+				}
+			}
+			else {
+				this.keyboard.set(c, GuessStatus.Absent);
+			}
+		});
+
+		this.guesses.push(guess);
+		this.guessResults.push(result);
+		this.participants.push(playerId);
+
+		// check if all the boxes are green
+		if (result.every(r => r === GuessStatus.Correct)) {
+			this.endGame(true);
+		} else if (this.guessResults.length >= MAX_GUESSES) {
+			this.endGame(false);
+		}
+
+		return WordGuessResult.Accepted;
+	}
+
+	endGame(won: boolean) {
+		this.state = won ? GameState.Won : GameState.Lost;
+		this.elapsedTime = Date.now() - this.startTime;
+	}
+}
+
+class Dictionary {
+
+	async getCollection() {
+		return getMongoDatabase()?.collection('dictionary');
+	}
+
+	async getRandomWord(length: number, minFrequency: number): Promise<string | null> {
+
+		if (IS_DEBUG) {
+			return 'hello';
+		}
+
+		const collection = await this.getCollection();
+		if (collection === undefined) {
+			return null;
+		}
+
+		const entry = await collection.aggregate([
+			{
+				$match: {
+					l: length,
+					f: { $gt: minFrequency }
+				}
+			},
+			{ $sample: { size: 1 } }
+		]).toArray();
+
+		if (entry.length === 0) {
+			return null;
+		}
+
+		return entry[0]['w'];
+	}
+
+	async wordExists(word: string, minFrequency: number): Promise<boolean> {
+
+		if (IS_DEBUG) {
+			return true;
+		}
+
+		const collection = await this.getCollection();
+		if (collection) {
+			const entry = await collection?.findOne(
+				{
+					w: word,
+					f: { $gt: minFrequency }
+				}
+			);
+			if (entry === null) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+}
+
+const dictionary = new Dictionary();
+const wordleStats = new WordleStats();
+const wordleMgr = new WordleManager('wordle', 'Play game of Wordle');
+
+
+// const testWordle = async () => {
+
+// 	const wordle = new Wordle();
+// 	await wordle.beginGame(5);
+
+// 	await wordle.performGuess('peynh', true);
+// 	await wordle.performGuess('blris', true);
+// 	await wordle.performGuess('bhllo', true);
+
+// 	const board = await WordleRenderer.renderBoard(wordle);
+// 	const kboard = await WordleRenderer.renderKeyboard(wordle);
+
+// 	// export both files
+// 	sharp(board).toFile('board.png');
+// 	sharp(kboard).toFile('kboard.png');
+
+// }
+
+export { wordleMgr };

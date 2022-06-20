@@ -1,4 +1,4 @@
-import { Client, ClientOptions, GuildMember, Intents } from "discord.js";
+import { Client, ClientOptions, Intents } from "discord.js";
 import "dotenv/config";
 import animals from "./modules/animals";
 import { emoter } from "./modules/emoter";
@@ -13,13 +13,13 @@ import weather from "./modules/weather/weather";
 import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
-import wordle from "./modules/wordle";
 import leagueban from "./modules/ban-league";
 import { DatabaseModule, ModuleManager } from "./module_mgr";
 import reminder from "./modules/remindme";
 import markovify from "./modules/markovify";
 import minidalle from "./modules/minidalle";
 import uberduck from "./modules/uberduck";
+import { wordleMgr } from "./modules/wordle";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -37,7 +37,7 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(yeller);
 		this.moduleMgr.registerModule(markdownUrl);
 		this.moduleMgr.registerModule(leagueban);
-		this.moduleMgr.registerModule(wordle);
+		this.moduleMgr.registerModule(wordleMgr);
 		this.moduleMgr.registerModule(weather);
 		this.moduleMgr.registerModule(animals);
 		this.moduleMgr.registerModule(emoter);
@@ -121,7 +121,7 @@ client.on("interactionCreate", async (interaction) => {
 				break;
 			}
 			case "wordle": {
-				wordle.commandWordle(interaction);
+				wordleMgr.commandWordle(interaction);
 				break;
 			}
 			case "module": {
@@ -144,10 +144,10 @@ client.on("interactionCreate", async (interaction) => {
 				await markovify.commandOptout(interaction);
 				break;
 			}
-			case "stats_wordle": {
-				await wordle.commandStats(interaction);
-				break;
-			}
+			// case "stats_wordle": {
+			// 	await wordle.commandStats(interaction);
+			// 	break;
+			// }
 	
 			case "imagine": {
 				await minidalle.commandCreate(interaction);
@@ -204,7 +204,7 @@ client.on("messageCreate", async (message) => {
 	if (!emoted) {
 		await yeller.handleMessage(message);
 		await markdownUrl.handleMessage(message);
-		await wordle.handleMessage(message);
+		await wordleMgr.handleMessage(message);
 	}
 });
 

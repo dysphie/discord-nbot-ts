@@ -65,19 +65,19 @@ const mimic_optout = new SlashCommandBuilder()
 	.setName('mimic_optout')
 	.setDescription('Opts out of mimic')
 	
-const stats_wordle = new SlashCommandBuilder()
-	.setName('stats_wordle')
-	.setDescription('Posts the top plays in Wordle')
-	.addStringOption(option =>
-		option.setName('type')
-			.setDescription('Type of stats to get')
-			.setRequired(true)
-			.setChoices([
-				['fastest', 'fastest'],
-				['lost_words', 'lost_words'],
-				['slowest', 'slowest'],
-				['longest_words', 'longest_words'],
-			]))
+// const stats_wordle = new SlashCommandBuilder()
+// 	.setName('stats_wordle')
+// 	.setDescription('Posts the top plays in Wordle')
+// 	.addStringOption(option =>
+// 		option.setName('type')
+// 			.setDescription('Type of stats to get')
+// 			.setRequired(true)
+// 			.setChoices([
+// 				['fastest', 'fastest'],
+// 				['lost_words', 'lost_words'],
+// 				['slowest', 'slowest'],
+// 				['longest_words', 'longest_words'],
+// 			]))
 
                     
 const inspire = new SlashCommandBuilder()
@@ -100,10 +100,10 @@ const wordle = new SlashCommandBuilder()
         option.setName('length')
             .setDescription('The length of the words to use')
             .setRequired(false))
-    // .addStringOption(option => 
-    //     option.setName('starter_word')
-    //         .setDescription('The first word to guess')
-    //         .setRequired(false))
+    .addStringOption(option => 
+        option.setName('starter_words')
+            .setDescription('Words to preload into the game')
+            .setRequired(false))
 
 const emoter = new SlashCommandBuilder()
 .setName('emoter')
@@ -207,7 +207,7 @@ const commands = [
     reminder.toJSON(),
 	mimic.toJSON(),
 	mimic_optout.toJSON(),
-	stats_wordle.toJSON(),
+	//stats_wordle.toJSON(),
 	imagine.toJSON(),
 	vocalize.toJSON(),
 ];
