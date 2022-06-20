@@ -366,15 +366,14 @@ class WordleInterface {
 				}
 				// Else just render empty tiles
 				else {
-					const [color, opacity] = guessStatusToColor(GuessStatus.Unknown);
-
+					const color = guessStatusToColor(GuessStatus.Unknown);
 					svgContent += `
 	        	<rect 
 					x="${x}" 
 					y="${y}" 
 					width="${BOARD_TILE_WIDTH}" 
 					height="${BOARD_TILE_HEIGHT}" 
-					fill="${color}" fill-opacity="${opacity}"/>
+					fill="${color}"/>
 	      `
 				}
 			}
