@@ -45,7 +45,7 @@ class MiniDalle extends DatabaseModule {
 
 				embed.setDescription(`"${prompt}" by ${userMention(interaction.user.id)}`);
 				embed.setFooter({
-					text: "🧠 Powered by DALL·E mini",
+					text: "🧠 Powered by Craiyon",
 				})
 
 				embed.setImage(`attachment://${prompt}.png`);
@@ -112,6 +112,6 @@ class MiniDalle extends DatabaseModule {
 	}
 }
 
-const minidalle = new MiniDalle('minidalle', 'DALL·E mini is an AI model that generates images from any prompt you give');
+const minidalle = new MiniDalle('minidalle', 'Craiyon is an AI that generates images from any prompt you give');
 
 export default minidalle;
