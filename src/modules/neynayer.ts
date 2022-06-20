@@ -13,7 +13,9 @@ class NeyNayer
 	}
 
 	async beginTask(bot: Client) {
+		console.log("NeyNayer: Started task");
 		this.bot = bot;
+		await this.checkNayPfp();
 		setInterval(async () => {
 			await this.checkNayPfp();
 		}, /* every 1 hour */ 3600000);
@@ -37,15 +39,17 @@ class NeyNayer
 		const elapsed = new Date().getTime() - oldest;
 
 		// milliseconds to days
-		const days = elapsed / (1000 * 60 * 60 * 24);
+		const days = Math.round(elapsed / (1000 * 60 * 60 * 24));
 
 		const count = pfp.length;
-		await message.reply(`${count} profile pic changes detected in ${days} days`);
+		await message.reply(`**${count}** pfp changes detected in **${days}** days`);
 	}
 
 	async checkNayPfp()
 	{
+		console.log('Checking Nays pfp');
 		if (!this.bot) {
+			//console.log('NeyNayer: Bot not initialized');
 			return;
 		}
 
@@ -55,6 +59,7 @@ class NeyNayer
 		}
 
 		const pfpUrl = nay.avatarURL({ format: "png", dynamic: true, size: 1024 });
+		//console.log(`Nay pfp: ${pfpUrl}`);
 		
 		const storage = this.getStorage();
 		if (storage === undefined) {
@@ -63,12 +68,13 @@ class NeyNayer
 		}
 
 		// save this pfpUrl to the database if it's not already there
-		const result = await storage.updateOne({ key: "stats" }, { 
+		const result = await storage.updateOne({ url: pfpUrl }, { 
 			$set: { 
 				url: pfpUrl, 
 				date: new Date().getTime()
 			}
 		}, { upsert: true });
+
 
 		if (result.upsertedCount > 0) {
 			console.log(`[${new Date().toLocaleString()}] Nay changed pfp again!`);

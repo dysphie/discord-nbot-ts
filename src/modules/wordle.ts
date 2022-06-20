@@ -464,7 +464,7 @@ class WordleManager extends DatabaseModule {
 
 		const wordle = await this.getOnGoingWordle(message.guildId);
 		if (!wordle) {
-			console.log(`Ignoring ${message.content} as no wordle is in progress`);
+			//console.log(`Ignoring ${message.content} as no wordle is in progress`);
 			return;
 		}
 
