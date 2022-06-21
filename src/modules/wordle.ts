@@ -66,7 +66,8 @@ enum WordGuessResult {
 
 
 const getGameStorage = () => {
-	return getMongoDatabase()?.collection<DbGame>('wordle');
+	//return getMongoDatabase()?.collection<DbGame>('wordle');
+	return getMongoDatabase()?.collection('wordle');
 }
 
 const getStatsStorage = () => {
@@ -126,10 +127,9 @@ class WordleStats {
 
 		const entries = await getGameStorage()?.find({
 			guild: guildId,
-			won: {$ne: 3 } // FIXME: 3 is InProgress, for some reason the enum is not working
-		}).sort({ date: -1 }).toArray();
-
-		console.log(`Got ${entries?.length} previous games`);
+			won: {$ne: 3 }, // FIXME: GameState.InProgress does not work for some reason
+			date: { $exists: true }
+		}).sort({ date: 1 }).toArray();
 
 		const guessDistribution = new Array(MAX_GUESSES).fill(0);
 
@@ -390,6 +390,15 @@ class WordleManager extends DatabaseModule {
 
 	onGoing: Map<string, Wordle> = new Map<string, Wordle>();
 
+	
+
+	async debugGetStats(guildId: string) {
+
+		// strip whitespace from the guildId
+		guildId = guildId.trim();
+		await wordleStats.recomputeStats(guildId);
+	}
+
 	async commandWordle(interaction: CommandInteraction) {
 
 		if (!interaction.guildId) {
@@ -446,7 +455,6 @@ class WordleManager extends DatabaseModule {
 
 		wordle = await this.gameFromDb(guildId);
 		if (wordle) {
-			console.log(`Added wordle from db ${guildId} to ongoing`);
 			this.onGoing.set(guildId, wordle);
 			return wordle;
 		}
@@ -464,7 +472,6 @@ class WordleManager extends DatabaseModule {
 
 		const wordle = await this.getOnGoingWordle(message.guildId);
 		if (!wordle) {
-			//console.log(`Ignoring ${message.content} as no wordle is in progress`);
 			return;
 		}
 
@@ -520,7 +527,6 @@ class WordleManager extends DatabaseModule {
 
 		const dbGames = getGameStorage();
 		if (!dbGames) {
-			console.log('gameToDb: dbGames is null');
 			return;
 		}
 
@@ -553,7 +559,6 @@ class WordleManager extends DatabaseModule {
 
 		const dbGames = getGameStorage();
 		if (!dbGames) {
-			console.log('gameFromDb: dbGames is null');
 			return;
 		}
 
@@ -576,11 +581,10 @@ class WordleManager extends DatabaseModule {
 		}
 
 		game.state = dbGame.won;
-		//console.log(`Got state from db ${dbGame.won}`);
 		game.dbId = dbGame._id;
 
 		// Rebuild the board
-		dbGame.guesses_list.forEach(guess => {
+		dbGame.guesses_list.forEach((guess: string) => {
 			game.performGuess(guess,
 				false, // Don't validate guesses, assume they've been before
 				'0'); // TODO: userids
@@ -622,7 +626,6 @@ class Wordle {
 
 	async performGuess(guess: string, validate: boolean, playerId: string): Promise<WordGuessResult> {
 
-		//console.log(`Guessing word ${guess}`);
 		if (this.state !== GameState.InProgress) {
 			return WordGuessResult.BadState;
 		}
