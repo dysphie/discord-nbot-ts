@@ -647,7 +647,7 @@ class Wordle {
 		}
 
 		const solutionChars = [...this.solution];
-		const result: GuessStatus[] = Array(5).fill(GuessStatus.Absent);
+		const result: GuessStatus[] = Array(this.solution.length).fill(GuessStatus.Absent);
 
 		// Find greens
 		[...guess].forEach((c, i) => {
