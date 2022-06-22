@@ -21,6 +21,7 @@ import minidalle from "./modules/minidalle";
 import uberduck from "./modules/uberduck";
 import { wordleMgr } from "./modules/wordle";
 import neynayer from "./modules/neynayer";
+import openaiMgr from "./modules/openai";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -160,6 +161,10 @@ client.on("interactionCreate", async (interaction) => {
 			case "vocalize": {
 				await uberduck.commandVocalize(interaction);
 				break;
+			}
+
+			case "complete": {
+				await openaiMgr.commandComplete(interaction);
 			}
 		}
 	}

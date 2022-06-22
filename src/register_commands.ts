@@ -195,6 +195,15 @@ const vocalize = new SlashCommandBuilder()
 		.setRequired(true))
 
 
+const complete = new SlashCommandBuilder()
+.setName('complete')
+.setDescription('Generate text from a given prompt')
+.addStringOption(option =>
+	option
+		.setName('prompt')
+		.setDescription('Starter text to use. You can use double spaces to indicate line breaks')
+		.setRequired(true))
+
 const commands = [
     weather.toJSON(),
     namecolor.toJSON(),
@@ -210,6 +219,7 @@ const commands = [
 	//stats_wordle.toJSON(),
 	imagine.toJSON(),
 	vocalize.toJSON(),
+	complete.toJSON(),
 ];
 
 const registerCommands = async (clientId: string, token: string) => {
