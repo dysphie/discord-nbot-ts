@@ -675,7 +675,9 @@ class Wordle {
 				}
 			}
 			else {
-				this.keyboard.set(c, GuessStatus.Absent);
+				if (!this.keyboard.has(c)) {
+					this.keyboard.set(c, GuessStatus.Absent);
+				}
 			}
 		});
 
