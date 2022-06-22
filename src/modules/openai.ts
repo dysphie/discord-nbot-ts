@@ -2,7 +2,7 @@ import { CommandInteraction, MessageEmbed } from "discord.js";
 import { Configuration, OpenAIApi } from "openai";
 import { DatabaseModule } from "../module_mgr";
 import { config } from "dotenv";
-import { bold } from "@discordjs/builders";
+import { bold, spoiler } from "@discordjs/builders";
 config();
 
 const configuration = new Configuration({
@@ -47,13 +47,14 @@ class OpenAIManager extends DatabaseModule
 			return;
 		}
 
-		const content = `${bold(message)}${response.data.choices[0].text}`.substring(0, 2000);
+		const autocompleted = response.data.choices[0].text?.substring(0, 2000) || '';
+		const content = `${bold(message)}${spoiler(autocompleted)}`;
 
 		const embed = new MessageEmbed();
 		embed.setDescription(content);
 		embed.setColor(0x3BA55D);
 		embed.setFooter({
-			text: "🧠 Powered by OpenAI GPT-3",
+			text: "🧠 Powered by OpenAI GPT-3 \n⚠️ Completion may contain sensitive content",
 		})
 
 		await interaction.editReply({
