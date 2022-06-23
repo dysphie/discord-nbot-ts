@@ -31,7 +31,7 @@ class NeyNayer
 
 		await this.checkNayPfp();
 
-		const pfp = await storage.find({}).sort({ date: -1 }).toArray();
+		const pfp = await storage.find({}).sort({ date: 1 }).toArray();
 		if (!pfp) {
 			await message.reply("No profile pic changes detected");
 			return;
