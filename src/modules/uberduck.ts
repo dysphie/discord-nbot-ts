@@ -144,7 +144,7 @@ class Uberduck extends DatabaseModule {
 		}
 		catch (e) {
 			await interaction.followUp({
-				content: 'Failed to generate speech!',
+				content: `${e}`,
 				ephemeral: true
 			});
 			return;
