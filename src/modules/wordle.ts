@@ -430,8 +430,9 @@ class WordleManager extends DatabaseModule {
 			if (starterWordCmd !== null) {
 				const starterWords = starterWordCmd.split(/\s+/);
 
+				// TODO: Build message with errors
 				for (const word of starterWords) {
-					await wordle.performGuess(word, true, interaction.user.id);
+					await wordle.performGuess(word, true, interaction.user.id, interaction.guildId);
 				}
 			}
 		}
@@ -476,7 +477,7 @@ class WordleManager extends DatabaseModule {
 		}
 
 		// Process guess here
-		const result = await wordle.performGuess(word, true, message.author.id);
+		const result = await wordle.performGuess(word, true, message.author.id, message.guildId);
 
 		switch (result) {
 			case WordGuessResult.BadLength:
@@ -489,7 +490,7 @@ class WordleManager extends DatabaseModule {
 			case WordGuessResult.TooRecent:
 				{
 					const embed = new MessageEmbed();
-					embed.setDescription(`❌ You've recently started a game with this word`);
+					embed.setDescription(`❌ You've recently guessed this word`);
 					embed.setColor(0xFF0000);
 					await message.reply({
 						embeds: [embed]
@@ -587,7 +588,7 @@ class WordleManager extends DatabaseModule {
 		dbGame.guesses_list.forEach((guess: string) => {
 			game.performGuess(guess,
 				false, // Don't validate guesses, assume they've been before
-				'0'); // TODO: userids
+				'0', '0'); // TODO: userids and guild Ids
 		});
 
 		game.participants = dbGame.players;
@@ -624,7 +625,7 @@ class Wordle {
 		return true;
 	}
 
-	async performGuess(guess: string, validate: boolean, playerId: string): Promise<WordGuessResult> {
+	async performGuess(guess: string, validate: boolean, playerId: string, guildId: string): Promise<WordGuessResult> {
 
 		if (this.state !== GameState.InProgress) {
 			return WordGuessResult.BadState;
@@ -643,6 +644,11 @@ class Wordle {
 			const exists = await dictionary.wordExists(guess, MIN_RARITY_GUESS);
 			if (!exists) {
 				return WordGuessResult.NotAWord;
+			}
+
+			const isOriginal = await dictionary.isOriginalWord(guess, guildId);
+			if (!isOriginal && guess != this.solution) {
+				return WordGuessResult.TooRecent;
 			}
 		}
 
@@ -734,6 +740,19 @@ class Dictionary {
 
 		return entry[0]['w'];
 	}
+
+	async isOriginalWord(word: string, guildId: string): Promise<boolean> {
+
+		const recentWords = getMongoDatabase()?.collection('wordle.recent');
+		const result = await recentWords?.updateOne({
+			w: word,
+			d: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+			g: guildId
+		}, { $set: { w: word, d: new Date(), g: guildId } }, { upsert: true });
+
+		return result === undefined || result.matchedCount === 0;
+	}
+
 
 	async wordExists(word: string, minFrequency: number): Promise<boolean> {
 
