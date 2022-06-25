@@ -5,44 +5,34 @@ import { DatabaseModule } from "../module_mgr";
 class RandomAnimal extends DatabaseModule {
 
 	async commandCat(interaction: CommandInteraction) {
-		const url = "https://api.thecatapi.com/v1/images/search";
-		const resp = await axios.get(url);
-
-		if (resp.status !== 200) {
-			await interaction.reply(
-				"Failed to get cat image, all the cats are dead"
-			);
-			return;
+		try {
+			const resp = await axios.get("https://api.thecatapi.com/v1/images/search");
+			const imgUrl = resp.data[0].url;
+			await interaction.reply(imgUrl);
+		} catch (e) {
+			await interaction.reply("Internal error, try again later");
 		}
-
-		const imgUrl = resp.data[0].url;
-		interaction.reply(imgUrl);
 	}
 
 	async commandDog(interaction: CommandInteraction) {
-		const resp = await axios.get("https://dog.ceo/api/breeds/image/random");
-		if (resp.status !== 200) {
-			await interaction.reply(
-				"Failed to get dog image, all the dogs are dead"
-			);
-			return;
-		}
 
-		const dogUrl = resp.data.message;
-		interaction.reply(dogUrl);
+		try {
+			const resp = await axios.get("https://dog.ceo/api/breeds/image/random");
+			const dogUrl = resp.data.message;
+			await interaction.reply(dogUrl);
+		} catch (e) {
+			await interaction.reply("Internal error, try again later");
+		}
 	}
 
 	async commandLizard(interaction: CommandInteraction) {
-		const resp = await axios.get("https://nekos.life/api/v2/img/lizard");
-		if (resp.status !== 200) {
-			await interaction.reply(
-				"Failed to get lizard image, all the lizards are dead"
-			);
-			return;
+		try {
+			const resp = await axios.get("https://nekos.life/api/v2/img/lizard");
+			const lizardUrl = resp.data.url;
+			await interaction.reply(lizardUrl);
+		} catch (e) {
+			await interaction.reply("Internal error, try again later");
 		}
-
-		const lizardUrl = resp.data.url;
-		interaction.reply(lizardUrl);
 	}
 
 	async commandAnimal(interaction: CommandInteraction) {

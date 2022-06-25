@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CommandInteraction, MessageAttachment, MessageEmbed } from "discord.js";
+import { CommandInteraction, MessageEmbed } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 
 class InspiroBot extends DatabaseModule {
@@ -11,22 +11,17 @@ class InspiroBot extends DatabaseModule {
 			return;
 		}
 
-		const url = "https://inspirobot.me/api?generate=true";
-		const quoteUrl = await axios.get(url);
-		if (quoteUrl.status !== 200) {
-			await interaction.reply({
-				content: "Service is currently unavailable",
-				ephemeral: true
+		try {
+			const quoteUrl = await axios.get("https://inspirobot.me/api?generate=true");
+			const embed = new MessageEmbed();
+			embed.setImage(quoteUrl.data);
+			embed.setFooter({
+				text: "🧠 Powered by inspirobot.me",
 			});
-			return;
+			await interaction.reply({ embeds: [embed] });
+		} catch (e) {
+			await interaction.reply("Internal error, try again later");
 		}
-
-		const embed = new MessageEmbed();
-		embed.setImage(quoteUrl.data);
-		embed.setFooter({
-			text: "🧠 Powered by inspirobot.me",
-		});
-		interaction.reply({ embeds: [embed] });
 	}
 }
 

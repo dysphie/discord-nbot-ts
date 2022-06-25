@@ -103,11 +103,11 @@ class Uberduck extends DatabaseModule {
 
 
 		if (text === null || name === null) {
-			interaction.reply('Missing arguments!');
+			await interaction.reply('Missing arguments!');
 			return;
 		}
 
-		interaction.reply({
+		await interaction.reply({
 			content: `Generating speech with with ${bold(name)}...`,
 			ephemeral: true
 		});
