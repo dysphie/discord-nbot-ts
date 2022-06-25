@@ -646,10 +646,10 @@ class Wordle {
 				return WordGuessResult.NotAWord;
 			}
 
-			const isOriginal = await dictionary.isOriginalWord(guess, guildId);
-			if (!isOriginal && guess != this.solution) {
-				return WordGuessResult.TooRecent;
-			}
+			// const isOriginal = await dictionary.isOriginalWord(guess, guildId);
+			// if (!isOriginal && guess != this.solution) {
+			// 	return WordGuessResult.TooRecent;
+			// }
 		}
 
 		const solutionChars = [...this.solution];
