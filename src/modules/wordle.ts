@@ -77,9 +77,9 @@ const getStatsStorage = () => {
 const guessStatusToColor = (guessStatus: GuessStatus) => {
 	switch (guessStatus) {
 		case GuessStatus.Correct:
-			return "#006843";
+			return "#519638";
 		case GuessStatus.Elsewhere:
-			return "#C2410C";
+			return "#C27833";
 		case GuessStatus.Absent:
 			return "#202225";
 		default:
