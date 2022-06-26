@@ -12,20 +12,22 @@ const DEFAULT_WORD_LENGTH = 5;
 const MIN_RARITY_SOLUTION = 1_000_000;
 const MIN_RARITY_GUESS = 150_000;
 
-const BOARD_TILE_GAP = 4;
+const BOARD_TILE_GAP = 10;
 
-const BOARD_TILE_HEIGHT = 32;
-const BOARD_TILE_WIDTH = 32;
+const BOARD_TILE_HEIGHT = 128;
+const BOARD_TILE_WIDTH = 128;
+const BOARD_FONT_SIZE = 100;
 
-const KB_BUTTON_HEIGHT = 20;
-const KB_BUTTON_WIDTH = 20;
+const KB_BUTTON_HEIGHT = 64;
+const KB_BUTTON_WIDTH = 64;
+const KB_FONT_SIZE = 50;
 
 const MAX_GUESSES = 6;
 
 const KEYBOARD_LAYOUT = [
-	["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+	["q", "w", "e", "r", "t", "y", "u", "i", "o"],
 	["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-	["z", "x", "c", "v", "b", "n", "m"]
+	["z", "x", "c", "v", "b", "n", "m", "p"]
 ]
 
 interface DbGame {
@@ -207,22 +209,13 @@ class WordleStats {
 class WordleInterface {
 
 	static async replyToWordleInteraction(msg: Message | CommandInteraction, game: Wordle, guildId: string) {
-
-		const files = [{
-			attachment: await WordleInterface.buildMainBoard(game),
-			name: 'board.png'
-		}];
+		
+		const gameboard = await WordleInterface.buildBoard(game);
 
 		const embeds = [];
 
-		if (game.state == GameState.InProgress) {
-			files.push({
-				attachment: await WordleInterface.buildKeyboard(game),
-				name: 'wordle_keyboard.png'
-			});
-		}
-		else {
-
+		if (game.state !== GameState.InProgress)
+		{
 			const stats = await wordleStats.recomputeStats(guildId);
 			const embed = await WordleInterface.buildStatsEmbed(game, guildId, stats);
 
@@ -241,14 +234,14 @@ class WordleInterface {
 
 		if (msg instanceof CommandInteraction) {
 			await msg.reply({
-				files: files,
+				files: [gameboard],
 				embeds: embeds
 			});
 		}
 		else {
 			await msg.channel.send({
-				embeds: embeds,
-				files: files
+				files: [gameboard],
+				embeds: embeds
 			});
 		}
 	}
@@ -278,68 +271,21 @@ class WordleInterface {
 		return embed;
 	}
 
-	static async buildKeyboard(wordle: Wordle) {
 
-		let maxWidth = 0;
-		let svgContent = '<svg>';
-
-		KEYBOARD_LAYOUT.forEach((row, rowIndex) => {
-
-			const rowLen = row.length;
-			const maxRowWidth = rowLen * KB_BUTTON_WIDTH + (rowLen - 1) * BOARD_TILE_GAP;
-			if (maxRowWidth > maxWidth) {
-				maxWidth = maxRowWidth;
-			}
-
-			row.forEach((key, keyIndex) => {
-
-				const x = keyIndex * (KB_BUTTON_WIDTH + BOARD_TILE_GAP);
-				const y = rowIndex * (KB_BUTTON_HEIGHT + BOARD_TILE_GAP);
-
-				const guessStatus = wordle.keyboard.get(key) || GuessStatus.Unknown;
-
-				const color = guessStatusToColor(guessStatus);
-				svgContent += `
-					<rect 
-						x="${x}" 
-						y="${y}" 
-						width="${KB_BUTTON_WIDTH}" 
-						height="${KB_BUTTON_HEIGHT}" 
-						fill="${color}"
-						/>
-					<text 
-						x="${x + KB_BUTTON_WIDTH / 2}" 
-						y="${y + KB_BUTTON_HEIGHT / 2 + 4.5}" 
-						font-family="Arial"
-						font-weight="bold"
-						text-anchor="middle" 
-						fill="white"
-						>
-						${key.toUpperCase()}
-					</text>
-					`;
-			}
-			);
-		});
-
-		svgContent += '</svg>';
-		const buffer = await sharp(Buffer.from(svgContent)).png().toBuffer();
-		return buffer;
-	}
-
-	static async buildMainBoard(wordle: Wordle) {
+	static async buildBoard(wordle: Wordle) {
 
 		const wordLen = wordle.solution.length;
 		const currentGuesses = wordle.guesses.length;
 
-
 		let svgContent = '<svg>';
 
+		let y = 0;
+
 		for (let i = 0; i < MAX_GUESSES; i++) {
+
 			for (let j = 0; j < wordLen; j++) {
 
 				const x = j * (BOARD_TILE_WIDTH + BOARD_TILE_GAP);
-				const y = i * (BOARD_TILE_HEIGHT + BOARD_TILE_GAP);
 
 				// If these rows have a guess made for them, render it with the appropiate colors
 				if (i < currentGuesses) {
@@ -348,16 +294,16 @@ class WordleInterface {
 					const guess = wordle.guesses[i].charAt(j);
 					const guessStatus = resultRow[j];
 					const color = guessStatusToColor(guessStatus);
-					const fontSize = 18;
+
 					svgContent += `
 	          <rect x="${x}" y="${y}" width="${BOARD_TILE_WIDTH}" height="${BOARD_TILE_HEIGHT}" fill="${color}" />
 	          <text
-	              font-size="${fontSize}"
+	              font-size="${BOARD_FONT_SIZE}"
 	              font-family="Arial"
-	              font-weight="bold"
+	              font-weight="800"
 				  fill="white"
 	              x="${x + BOARD_TILE_WIDTH * 0.5}"
-	              y="${y + BOARD_TILE_HEIGHT * 0.5 + 5.5}"
+	              y="${y + BOARD_TILE_HEIGHT * 0.5 + 34.0}"
 	              dominant-baseline="central"
 	              text-anchor="middle">
 	            ${guess.toUpperCase()}
@@ -377,11 +323,60 @@ class WordleInterface {
 	      `
 				}
 			}
+
+			y += BOARD_TILE_HEIGHT + BOARD_TILE_GAP;
 		}
 
-		svgContent += `</svg>`;
-		const buffer = await sharp(Buffer.from(svgContent)).toBuffer();
-		return buffer;
+		// Space between the board and the keyboard
+		y += BOARD_TILE_GAP * 2;
+
+		// Add Keyboard
+		let maxWidth = 0;
+		KEYBOARD_LAYOUT.forEach((row) => {
+
+			const rowLen = row.length;
+			const maxRowWidth = rowLen * KB_BUTTON_WIDTH + (rowLen - 1) * BOARD_TILE_GAP;
+			if (maxRowWidth > maxWidth) {
+				maxWidth = maxRowWidth;
+			}
+
+			row.forEach((key, keyIndex) => {
+
+				const x = keyIndex * (KB_BUTTON_WIDTH + BOARD_TILE_GAP);
+
+				const guessStatus = wordle.keyboard.get(key) || GuessStatus.Unknown;
+
+				const color = guessStatusToColor(guessStatus);
+				svgContent += `
+					<rect 
+						x="${x}" 
+						y="${y}" 
+						width="${KB_BUTTON_WIDTH}" 
+						height="${KB_BUTTON_HEIGHT}" 
+						fill="${color}"
+						/>
+					<text 
+						x="${x + KB_BUTTON_WIDTH / 2}" 
+						y="${y + KB_BUTTON_HEIGHT / 2 + 16}" 
+						font-size="${KB_FONT_SIZE}"
+						font-family="Arial"
+						font-weight="bold"
+						text-anchor="middle" 
+						fill="white"
+						>
+						${key.toUpperCase()}
+					</text>
+					`;
+			}
+			);
+
+			y += KB_BUTTON_HEIGHT + BOARD_TILE_GAP;
+		});
+
+		svgContent += '</svg>';
+
+		const buf = await sharp(Buffer.from(svgContent)).webp().toBuffer();
+		return buf;
 	}
 }
 
