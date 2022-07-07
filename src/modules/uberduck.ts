@@ -66,31 +66,31 @@ class Uberduck extends DatabaseModule {
 		return buffer;
 	}
 
-	async createSpeech(text: string, name: string) {
+	// async createSpeech(text: string, name: string) {
 
-		const resp = await axios({
-			method: 'post',
-			url: 'https://api.uberduck.ai/speak',
-			headers: {
-				'Authorization': this.buildAuthHeader(),
-			},
-			data: {
-				speech: text, // text to speak
-				voice: name, // voice model
-			}
-		});
+	// 	const resp = await axios({
+	// 		method: 'post',
+	// 		url: 'https://api.uberduck.ai/speak',
+	// 		headers: {
+	// 			'Authorization': this.buildAuthHeader(),
+	// 		},
+	// 		data: {
+	// 			speech: text, // text to speak
+	// 			voice: name, // voice model
+	// 		}
+	// 	});
 
-		return resp.data.uuid;
-	}
+	// 	return resp.data.uuid;
+	// }
 
-	async pollSpeechStatus(speechId: string) {
-		const resp = await axios({
-			method: 'get',
-			url: `https://api.uberduck.ai/speak-status?uuid=${speechId}`,
-		});
+	// async pollSpeechStatus(speechId: string) {
+	// 	const resp = await axios({
+	// 		method: 'get',
+	// 		url: `https://api.uberduck.ai/speak-status?uuid=${speechId}`,
+	// 	});
 
-		return resp.data;
-	}
+	// 	return resp.data;
+	// }
 
 	async commandVocalize(interaction: CommandInteraction) {
 		const text = interaction.options.getString('prompt');
@@ -103,46 +103,52 @@ class Uberduck extends DatabaseModule {
 
 
 		if (text === null || name === null) {
-			await interaction.reply('Missing arguments!');
+			interaction.reply('Missing arguments!');
 			return;
 		}
 
-		await interaction.reply({
+		interaction.reply({
 			content: `Generating speech with with ${bold(name)}...`,
 			ephemeral: true
 		});
 
-		const uuid = await this.createSpeech(text, name);
-		let audioPath = null;
+		//const uuid = await this.createSpeech(text, name);
+		// let audioPath = null;
 
-		const MAX_ATTEMPTS = 20;
-		let attempts = 0;
-		while (audioPath === null && attempts++ < MAX_ATTEMPTS) {
-			//console.log('Speech not ready, retrying in 2.5 seconds..');
-			await new Promise(resolve => setTimeout(resolve, 2500));
-			const status = await this.pollSpeechStatus(uuid);
-			audioPath = status.path;
-			//attempts++;
+		// const MAX_ATTEMPTS = 20;
+		// let attempts = 0;
+		// while (audioPath === null && attempts++ < MAX_ATTEMPTS) {
+		// 	//console.log('Speech not ready, retrying in 5 seconds..');
+		// 	await new Promise(resolve => setTimeout(resolve, 5000));
+		// 	const status = await this.pollSpeechStatus(uuid);
+		// 	audioPath = status.path;
+		// 	//attempts++;
+		// }
+
+		try {
+			const buffer = await this.createSpeechRaw(text, name);
+			const actorName = this.voices.find(voice => voice.name === name)?.displayName ?? 'Unknown';
+
+			const attachment = new MessageAttachment(buffer, "speech.wav");
+			const embed = new MessageEmbed();
+
+			const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
+			embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}\n` +
+				`Prompt: ${spoiler(textShort)}`);
+
+			embed.setFooter({
+				text: "🧠 Powered by Uberduck",
+			})
+
+			await interaction.channel?.send({ embeds: [embed], files: [attachment] });
 		}
-
-		// Uberduck is returning 500 for every speak-synchronous request. Use legacy method for now.
-		//const buffer = await this.createSpeechRaw(text, name);
-
-		const actorName = this.voices.find(voice => voice.name === name)?.displayName ?? 'Unknown';
-
-		//const attachment = new MessageAttachment(buffer, "speech.wav");
-		const attachment = new MessageAttachment(audioPath, "speech.wav");
-		const embed = new MessageEmbed();
-
-		const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
-		embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}\n` +
-			`Prompt: ${spoiler(textShort)}`);
-
-		embed.setFooter({
-			text: "🧠 Powered by Uberduck",
-		})
-
-		await interaction.channel?.send({ embeds: [embed], files: [attachment] });
+		catch (e) {
+			await interaction.followUp({
+				content: `${e}`,
+				ephemeral: true
+			});
+			return;
+		}
 	}
 
 	async commandAutocomplete(interaction: AutocompleteInteraction) {
