@@ -48,13 +48,13 @@ class OpenAIManager extends DatabaseModule
 		}
 
 		const autocompleted = response.data.choices[0].text?.substring(0, 2000) || '';
-		const content = `${bold(message)}${spoiler(autocompleted)}`;
+		const content = `${bold(message)}${autocompleted}`;
 
 		const embed = new MessageEmbed();
 		embed.setDescription(content);
 		embed.setColor(0x3BA55D);
 		embed.setFooter({
-			text: "🧠 Powered by OpenAI GPT-3 \n⚠️ Completion may contain sensitive content",
+			text: "🧠 Powered by OpenAI GPT-3",
 		})
 
 		await interaction.editReply({
