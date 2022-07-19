@@ -20,10 +20,12 @@ class OpenAIManager extends DatabaseModule {
 		}
 
 		let prompt = interaction.options.getString('prompt');
-		interaction.ephemeral = true;
 
 		if (!prompt) {
-			await interaction.reply("Error: No prompt specified");
+			await interaction.reply({
+				content: 'Please provide a prompt',
+				ephemeral: true,
+			});
 			return;
 		}
 
@@ -31,11 +33,17 @@ class OpenAIManager extends DatabaseModule {
 		prompt = prompt.replace(/\*\*/g, '');
 		
 		if (prompt.length > MAX_MESSAGE_LENGTH || prompt.length < 1) {
-			await interaction.reply("Error: Prompt is too long or too short!");
+			await interaction.reply({
+				content: 'Prompt is too long or too short',
+				ephemeral: true,
+			});
 			return;
 		}
 
-		await interaction.deferReply();
+		await interaction.deferReply({
+			ephemeral: true,
+		});
+
 		const embed = await this.createResponseEmbed(prompt);
 		const controls = await this.createControls(interaction.channel, interaction.user.id);
 		await interaction.editReply({
