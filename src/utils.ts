@@ -3,6 +3,7 @@ import { GuildMember, TextChannel, ThreadChannel } from "discord.js";
 import webhookManager from "./modules/utils/webhook_mgr";
 
 const INVISIBLE_CHAR = "\u17B5";
+const MAX_MESSAGE_LENGTH = 2000;
 
 async function postAsUser(
 	channel: TextChannel | ThreadChannel,
@@ -103,4 +104,4 @@ const isBotOwner = (userId: string) => {
 	return process.env.NBOT_OWNER_ID === userId;
 }
 
-export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, isBotOwner, fmtTime };
+export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, MAX_MESSAGE_LENGTH, isBotOwner, fmtTime };

@@ -22,7 +22,7 @@ import uberduck from "./modules/uberduck";
 import { wordleMgr } from "./modules/wordle";
 import neynayer from "./modules/neynayer";
 import openaiMgr from "./modules/openai";
-import { isBlacklisted } from "./blacklist";
+import blacklist from "./modules/blacklist";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -52,6 +52,9 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(reminder);
 		this.moduleMgr.registerModule(markovify);
 		this.moduleMgr.registerModule(minidalle);
+		this.moduleMgr.registerModule(uberduck);
+		this.moduleMgr.registerModule(openaiMgr);
+		this.moduleMgr.registerModule(blacklist);
 	}
 }
 
@@ -102,9 +105,9 @@ client.once("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
 
-	if (isBlacklisted(interaction.user.id)) {
-		return;
-	}
+	// if (isBlacklisted(interaction.user.id)) {
+	// 	return;
+	// }
 
 	if (interaction.isCommand()) 
 	{
@@ -189,9 +192,9 @@ client.on("messageReactionAdd", async (reaction) => {
 		return;
 	}
 
-	if (isBlacklisted(reaction.message.author.id)) {
-		return;
-	}
+	// if (isBlacklisted(reaction.message.author.id)) {
+	// 	return;
+	// }
 
 	// If an admin reacts to a message of ours with X, delete it
 	if (reaction.emoji.name === "❌" &&
@@ -212,9 +215,9 @@ client.on("messageReactionRemove", async (reaction) => {
 
 client.on("messageCreate", async (message) => {
 
-	if (isBlacklisted(message.author.id)) {
-		return;
-	}
+	// if (isBlacklisted(message.author.id)) {
+	// 	return;
+	// }
 
 	if (message.author.bot) {
 		await adblock.handleMessage(message);

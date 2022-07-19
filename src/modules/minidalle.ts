@@ -10,6 +10,8 @@ class MiniDalle extends DatabaseModule {
 
 	async commandCreate(interaction: CommandInteraction) {
 
+		interaction.ephemeral = true;
+
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This module is disabled.");
 			return;
@@ -17,26 +19,19 @@ class MiniDalle extends DatabaseModule {
 
 		const prompt = interaction.options.getString("prompt");
 		if (!prompt) {
-			await interaction.reply({
-				content: "Please provide a prompt.",
-				ephemeral: true
-			});
+			await interaction.reply("You must provide a prompt.");
 			return;
 		}
 
-		await interaction.deferReply({
-			ephemeral: true,
-		});
+		const embed = new MessageEmbed();
+		embed.setDescription(`Picturing your prompt..`);
 
-		await interaction.followUp({
-			content: "Imagining your prompt, this can take a while",
-			ephemeral: true
-		});
-
+		await interaction.reply({embeds: [embed]});
 
 		for (let attempts = 0; attempts < 20; attempts++) {
 			try {
 				const collage = await this.create(prompt);
+				
 
 				//console.log(`Success!`);
 
