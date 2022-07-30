@@ -1,7 +1,7 @@
 import axios from "axios";
 import { CommandInteraction, MessageAttachment, MessageEmbed } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
-import { userMention } from "@discordjs/builders";
+import { bold, userMention } from "@discordjs/builders";
 import sharp from "sharp";
 
 const API_URL = 'https://bf.dallemini.ai/generate';
@@ -10,31 +10,33 @@ class MiniDalle extends DatabaseModule {
 
 	async commandCreate(interaction: CommandInteraction) {
 
-		interaction.ephemeral = true;
 
 		if (!this.isEnabled(interaction.guildId)) {
-			await interaction.reply("This module is disabled.");
+			await interaction.reply({
+				content: "Error: MiniDalle is disabled on this server",
+				ephemeral: true
+			});
 			return;
 		}
 
 		const prompt = interaction.options.getString("prompt");
 		if (!prompt) {
-			await interaction.reply("You must provide a prompt.");
+			await interaction.reply({
+				content: "Error: You must specify a prompt",
+				ephemeral: true
+			});
 			return;
 		}
 
-		const embed = new MessageEmbed();
-		embed.setDescription(`Picturing your prompt..`);
-
-		await interaction.reply({embeds: [embed]});
+		await interaction.reply({
+			content: `Picturing ${bold(prompt)}`,
+			ephemeral: true
+		});
 
 		for (let attempts = 0; attempts < 20; attempts++) {
 			try {
 				const collage = await this.create(prompt);
 				
-
-				//console.log(`Success!`);
-
 				const attachment = new MessageAttachment(collage, "dalle.png");
 				const embed = new MessageEmbed();
 

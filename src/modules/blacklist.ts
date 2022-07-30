@@ -26,7 +26,6 @@ class Blacklist extends DatabaseModule
 
 	async toggleBlacklist(interaction: CommandInteraction, state: boolean) {
 
-		interaction.ephemeral = true;
 		const userId = interaction.options.getString('user_id');
 		if (!userId) {
 			await interaction.reply({
@@ -38,7 +37,10 @@ class Blacklist extends DatabaseModule
 
 		const blacklistCol = getMongoDatabase()?.collection("blacklist");
 		if (!blacklistCol) {
-			await interaction.reply('Failed to get blacklist. Please try again later.');
+			await interaction.reply({
+				content: 'Failed to get blacklist. Please try again later.',
+				ephemeral: true
+			});
 			return;
 		}
 
@@ -52,10 +54,17 @@ class Blacklist extends DatabaseModule
 				await blacklistCol.deleteOne({ user_id: userId });
 				this.blacklistIds = this.blacklistIds.filter(x => x !== userId);
 			}
-			await interaction.reply(`${userMention(userId)} has been ${state ? 'blacklisted' : 'unblacklisted'}`);
+			await interaction.reply({
+				content: `Successfully ${state ? 'blacklisted' : 'unblacklisted'} user ${userMention(userId)}`,
+				ephemeral: true
+			});
 		}
 		catch (e) {
-			await interaction.reply(`Failed to update blacklist: ${e}`);
+			await interaction.reply({
+				content: 'Failed to update blacklist. Please try again later.',
+				ephemeral: true
+			});
+			console.log(e);
 		}
 	}
 
