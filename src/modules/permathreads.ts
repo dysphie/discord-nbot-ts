@@ -25,14 +25,17 @@ class Permathreader extends DatabaseModule {
 					continue;
 				}
 
-				const fetched = await (
-					channel as TextChannel
-				).threads.fetchArchived();
-				for (const [, thread] of fetched.threads) {
-					if (thread.archived && this.isPermathread(thread)) {
-						console.log(`Recovered permathread ${thread.name}`);
-						await thread.setArchived(false);
+				try {
+					const fetched = await channel.threads.fetchArchived();
+					for (const [, thread] of fetched.threads) {
+						if (thread.archived && this.isPermathread(thread)) {
+							console.log(`Recovered permathread ${thread.name}`);
+							await thread.setArchived(false);
+						}
 					}
+				}
+				catch (e) {
+					console.log(`Permathreads, ignoring: ${e}`);
 				}
 			}
 		}
