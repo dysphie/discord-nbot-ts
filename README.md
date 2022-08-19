@@ -3,6 +3,23 @@ This is my own personal bot, designed to exist in a single small guild with frie
 
 Powered by TypeScript, MongoDB and several third-party APIs
 
+## Requirements
+- A server to host the JavaScript code (I use [Heroku](https://heroku.com/)) 
+- (Optional) A MongoDB database (I use [Atlas](https://www.mongodb.com/atlas/database)) (used by Emoter, Weather, Mimic, Yeller, Reminder, Starboard)
+- (Optional) An [OpenCage](https://opencagedata.com) API key for the Weather module (used by Weather)
+- (Optional) A [TomorrowIO](https://www.tomorrow.io/weather-api) API key  (used by Weather)
+- (Optional) A [Uberduck](https://app.uberduck.ai/) username and password (used by Uberduck)
+- (Optional) An [OpenAI](https://beta.openai.com/playground) API key (used by Autocomplete)
+
+## Setup
+- Set `NBOT_DISCORD_TOKEN` to your bot account's token (found [here](https://discord.com/developers/applications))
+- Set `NBOT_MONGODB_URI` to your MongoDB database URI 
+- Set `NBOT_MONGODB_AES_KEY` to a secure random string
+- Set `NBOT_OWNER_ID` to the Discord ID of the account that should have full permissions over the bot
+- (Optional) Set the `NBOT_OPENCAGE_API_KEY` environment variable to your OpenCage API key
+- (Optional) Set the `NBOT_TOMORROW_API_KEY` environment variable to your TomorrowIO API key
+- (Optional) Set the `NBOT_UBERDUCK_KEY` environment variable to your Uberduck username and `NBOT_UBERDUCK_SECRET` to your Uberduck password
+
 ## Module management
 
 All modules are disabled by default, you can manage them via commands
