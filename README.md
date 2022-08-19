@@ -56,6 +56,17 @@ Slash commands:
 - `/emoter edit <keyword> <url>` - Edits an existing emote if you are the original uploader
 - `/emoter remove <keyword>` - Deletes an emote if you are the original uploader
 
+## Wordle
+
+Play multiplayer games of Wordle, with words from 4 to 10 characters
+
+Slash commands:
+- `/wordle` - Starts or continues a game of Wordle
+  - `<length>` - Length of the board 
+  - `<starter_words>` - Space-separated list of words to pre-fill the board with
+
+![image](https://user-images.githubusercontent.com/11559683/185687552-41fcd8d7-d238-47fd-a045-708ecb0ad45b.png)
+
 ## Mimic
 
 Allows you to mimic other users via old messages and markov chains (requires the other user has opted in)
