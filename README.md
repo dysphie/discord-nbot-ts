@@ -5,9 +5,9 @@ This is my own personal bot, [originally written in Python](https://github.com/d
 
 Powered by:
 
-| Typescript  | discord.js  |  MongoDB |  OpenCage  |  TomorrowIO | Craiyon | OpenAI
-|---|---|---|---|---|---|---|
-| <img src="https://user-images.githubusercontent.com/11559683/185683112-b10a4e41-4b6f-4cf6-a561-72f297d2e029.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185682765-b9903f38-9506-44ef-aab3-6bf0fb62c37d.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683022-287e4b02-cb9d-4fef-b6a9-140be24b6597.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683156-32968d7f-4922-4bb3-ad16-c40af3586dc9.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683406-dcaef443-7e8b-4e55-8f15-77e7dff4b979.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683503-3a07acf1-1c82-48ba-a756-2c76c4ba0180.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683654-557c21cc-523b-408e-96a0-721a97d59d63.png" height="48" /> |
+| Typescript  | discord.js  |  MongoDB |  OpenCage  |  TomorrowIO | Craiyon | OpenAI | Uberduck
+|---|---|---|---|---|---|---|---|
+| <img src="https://user-images.githubusercontent.com/11559683/185683112-b10a4e41-4b6f-4cf6-a561-72f297d2e029.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185682765-b9903f38-9506-44ef-aab3-6bf0fb62c37d.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683022-287e4b02-cb9d-4fef-b6a9-140be24b6597.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683156-32968d7f-4922-4bb3-ad16-c40af3586dc9.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683406-dcaef443-7e8b-4e55-8f15-77e7dff4b979.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683503-3a07acf1-1c82-48ba-a756-2c76c4ba0180.png" height="48" /> | <img src="https://user-images.githubusercontent.com/11559683/185683654-557c21cc-523b-408e-96a0-721a97d59d63.png" height="48" /> | <img src="https://uberduck.ai/uberduck-neon.jpg" height="48"/>
 
 
 ## Requirements
