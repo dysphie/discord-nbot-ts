@@ -54,6 +54,7 @@ Slash commands:
 ## Name color picker
 
 Allows users to freely set their name color to whatever value they want
+
 ![image](https://user-images.githubusercontent.com/11559683/185676477-f8d7640a-2c0e-48d3-8d35-014333980920.png)
 
 Slash commands
