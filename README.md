@@ -12,11 +12,16 @@ Powered by:
 
 ## Requirements
 - A server to host the JavaScript code (I use [Heroku](https://heroku.com/)) 
-- (Optional) A MongoDB database (I use [Atlas](https://www.mongodb.com/atlas/database)) (used by the Emoter, Weather, Mimic, Yeller, Reminder and Starboard modules)
-- (Optional) An [OpenCage](https://opencagedata.com) API key (used by the Weather module)
+- (Optional) A MongoDB database (I use [Atlas](https://www.mongodb.com/atlas/database))
+  - <sub>Required by: Emoter, Weather, Mimic, Yeller, Reminder, Starboard</sub>
+- (Optional) An [OpenCage](https://opencagedata.com) API key
+  - <sub>Required by: Weather</sub>
 - (Optional) A [TomorrowIO](https://www.tomorrow.io/weather-api) API key  (used by the Weather module)
+  - <sub>Required by: Weather</sub>
 - (Optional) A [Uberduck](https://app.uberduck.ai/) username and password (used by the Uberduck module)
+  - <sub>Required by: Vocalizer</sub>
 - (Optional) An [OpenAI](https://beta.openai.com/playground) API key (used by the Autocomplete module)
+  - <sub>Required by: Autocomplete</sub>
 
 ## Environment variables
 - `NBOT_DISCORD_TOKEN` - Your bot account's token (found [here](https://discord.com/developers/applications))
