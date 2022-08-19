@@ -1,6 +1,7 @@
 # [Discord] NBot
 
-This is my own personal bot, designed to exist in a single small guild with friends.
+This is my own personal bot, [originally written in Python](https://github.com/dysphie/discord-nbot), designed to exist in a single small guild with friends.
+
 
 Powered by:
 
