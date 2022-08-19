@@ -30,7 +30,7 @@ Powered by:
 
 ## Config Keys
 - `weather_guild_id` - ID of a guild that houses all of the emotes used by the Weather module, expected names: `Unknown` `Clear` `MostlyClear` `PartlyCloudy` `MostlyCloudy` `Cloudy` `Fog` `LightFog` `Drizzle` `Rain` `LightRain` `HeavyRain` `Snow` `Flurries` `LightSnow` `HeavySnow` `FreezingDrizzle` `FreezingRain` `LightFreezingRain` `HeavyFreezingRain` `IcePellets` `HeavyIcePellets` `LightIcePellets` `Thunderstorm`
-- `emote_guild_id` - ID of a guild where the bot can freely upload and delete emotes, used by the Emoter module. At least 3 free emote slots recommended, the more slots the more emotes you can use in a single emote. Excess slots are used by the cache to store recently used emotes (faster)
+- `emote_guild_id` - ID of a guild where the bot can freely upload and delete emotes, used by the Emoter module. At least 3 free emote slots recommended, the more slots the more emotes you can pack in a single message. Excess slots are used by the cache to store recently used emotes for faster lookup
 - `patchbot_redirects` - JSON array used by the PatchBot module to redirect games to specific channels, e.g. `"League of Legends": "893193730692108298"` would redirect all League of Legends patch notes to the channel with the given ID
 - `permathreads` - JSON array of thread IDs that should never expire, used by the Permathreads module
 
