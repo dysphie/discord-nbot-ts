@@ -5,11 +5,11 @@ Powered by TypeScript, MongoDB and several third-party APIs
 
 ## Requirements
 - A server to host the JavaScript code (I use [Heroku](https://heroku.com/)) 
-- (Optional) A MongoDB database (I use [Atlas](https://www.mongodb.com/atlas/database)) (used by Emoter, Weather, Mimic, Yeller, Reminder, Starboard)
-- (Optional) An [OpenCage](https://opencagedata.com) API key for the Weather module (used by Weather)
-- (Optional) A [TomorrowIO](https://www.tomorrow.io/weather-api) API key  (used by Weather)
-- (Optional) A [Uberduck](https://app.uberduck.ai/) username and password (used by Uberduck)
-- (Optional) An [OpenAI](https://beta.openai.com/playground) API key (used by Autocomplete)
+- (Optional) A MongoDB database (I use [Atlas](https://www.mongodb.com/atlas/database)) (used by the Emoter, Weather, Mimic, Yeller, Reminder and Starboard modules)
+- (Optional) An [OpenCage](https://opencagedata.com) API key (used by the Weather module)
+- (Optional) A [TomorrowIO](https://www.tomorrow.io/weather-api) API key  (used by the Weather module)
+- (Optional) A [Uberduck](https://app.uberduck.ai/) username and password (used by the Uberduck module)
+- (Optional) An [OpenAI](https://beta.openai.com/playground) API key (used by the Autocomplete module)
 
 ## Setup
 - Set `NBOT_DISCORD_TOKEN` to your bot account's token (found [here](https://discord.com/developers/applications))
