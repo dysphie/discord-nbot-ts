@@ -17,14 +17,21 @@ Powered by:
 - (Optional) A [Uberduck](https://app.uberduck.ai/) username and password (used by the Uberduck module)
 - (Optional) An [OpenAI](https://beta.openai.com/playground) API key (used by the Autocomplete module)
 
-## Setup
-- Set `NBOT_DISCORD_TOKEN` to your bot account's token (found [here](https://discord.com/developers/applications))
-- Set `NBOT_MONGODB_URI` to your MongoDB database URI 
-- Set `NBOT_MONGODB_AES_KEY` to a secure random string
-- Set `NBOT_OWNER_ID` to the Discord ID of the account that should have full permissions over the bot
-- (Optional) Set the `NBOT_OPENCAGE_API_KEY` environment variable to your OpenCage API key
-- (Optional) Set the `NBOT_TOMORROW_API_KEY` environment variable to your TomorrowIO API key
-- (Optional) Set the `NBOT_UBERDUCK_KEY` environment variable to your Uberduck username and `NBOT_UBERDUCK_SECRET` to your Uberduck password
+## Environment variables
+- `NBOT_DISCORD_TOKEN` - Your bot account's token (found [here](https://discord.com/developers/applications))
+- `NBOT_MONGODB_URI` - Your MongoDB database URI 
+- `NBOT_MONGODB_AES_KEY` - A random secure string used to encrypt saved messages
+- `NBOT_OWNER_ID` - The ID of the Discord account that should have full control over the bot
+- (Optional) `NBOT_OPENCAGE_API_KEY` - Your OpenCage API key
+- (Optional) `NBOT_TOMORROW_API_KEY` - Your TomorrowIO API key
+- (Optional) `NBOT_UBERDUCK_KEY` - Your Uberduck username
+- (Optional) `NBOT_UBERDUCK_SECRET` - Your Uberduck password
+
+## Config Keys
+- `weather_guild_id` - ID of a guild that houses all of the emotes used by the Weather module, expected names: `Unknown` `Clear` `MostlyClear` `PartlyCloudy` `MostlyCloudy` `Cloudy` `Fog` `LightFog` `Drizzle` `Rain` `LightRain` `HeavyRain` `Snow` `Flurries` `LightSnow` `HeavySnow` `FreezingDrizzle` `FreezingRain` `LightFreezingRain` `HeavyFreezingRain` `IcePellets` `HeavyIcePellets` `LightIcePellets` `Thunderstorm`
+- `emote_guild_id` - ID of a guild where the bot can freely upload and delete emotes, used by the Emoter module. At least 3 free emote slots recommended, the more slots the more emotes you can use in a single emote. Excess slots are used by the cache to store recently used emotes (faster)
+- `patchbot_redirects` - JSON array used by the PatchBot module to redirect games to specific channels, e.g. `"League of Legends": "893193730692108298"` would redirect all League of Legends patch notes to the channel with the given ID
+- `permathreads` - JSON array of thread IDs that should never expire, used by the Permathreads module
 
 ## Module management
 
