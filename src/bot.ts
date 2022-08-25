@@ -23,6 +23,7 @@ import { wordleMgr } from "./modules/wordle";
 import neynayer from "./modules/neynayer";
 import openaiMgr from "./modules/openai";
 import blacklist from "./modules/blacklist";
+import { ActivityType } from "discord-api-types";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -76,6 +77,13 @@ client.once("ready", async () => {
 		throw new Error("Client user is null");
 	}
 
+	client.user.setPresence({ 
+		activities: [
+			{ name: "My battery is low and it's getting dark", type: `PLAYING` }
+		], 
+		status: 'online' }
+	);
+
 	await initMongoDatabase();
 
 	client.moduleMgr.modules.forEach(async (module: DatabaseModule) => {
@@ -109,8 +117,7 @@ client.on("interactionCreate", async (interaction) => {
 	// 	return;
 	// }
 
-	if (interaction.isCommand()) 
-	{
+	if (interaction.isCommand()) {
 		switch (interaction.commandName) {
 			case "weather": {
 				weather.commandWeather(interaction);
@@ -160,12 +167,12 @@ client.on("interactionCreate", async (interaction) => {
 			// 	await wordle.commandStats(interaction);
 			// 	break;
 			// }
-	
+
 			case "imagine": {
 				await minidalle.commandCreate(interaction);
 				break;
 			}
-	
+
 			case "vocalize": {
 				await uberduck.commandVocalize(interaction);
 				break;
