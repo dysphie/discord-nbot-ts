@@ -40,10 +40,15 @@ class NeyNayer
 		const oldest = pfp[0].date;
 		const elapsed = new Date().getTime() - oldest;
 
-		// milliseconds to days
+		// Milliseconds to days
 		const days = Math.round(elapsed / (1000 * 60 * 60 * 24));
 
-		const count = pfp.length;
+		// We do a little trolling
+		let count = pfp.length;
+		if (count > 99) {
+			count = 99;
+		}
+
 		await message.reply(`**${count}** pfp changes detected in **${days}** days`);
 	}
 

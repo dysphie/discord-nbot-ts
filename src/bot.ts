@@ -77,12 +77,17 @@ client.once("ready", async () => {
 		throw new Error("Client user is null");
 	}
 
-	client.user.setPresence({ 
-		activities: [
-			{ name: "My battery is low and it's getting dark", type: `PLAYING` }
-		], 
-		status: 'online' }
-	);
+	try {
+		client.user.setPresence({ 
+			activities: [
+				{ name: "My battery is low and it's getting dark", type: `PLAYING` }
+			], 
+			status: 'online' }
+		);
+	}
+	catch (e) {
+		console.log(`Failed to set presence: ${e}`);
+	}
 
 	await initMongoDatabase();
 
