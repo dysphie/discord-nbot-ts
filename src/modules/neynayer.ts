@@ -44,11 +44,7 @@ class NeyNayer
 		const days = Math.round(elapsed / (1000 * 60 * 60 * 24));
 
 		// We do a little trolling
-		let count = pfp.length;
-		if (count > 99) {
-			count = 98;
-		}
-
+		const count = pfp.length;
 		await message.reply(`**${count}** pfp changes detected in **${days}** days`);
 	}
 
