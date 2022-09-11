@@ -46,7 +46,7 @@ class NeyNayer
 		// We do a little trolling
 		let count = pfp.length;
 		if (count > 99) {
-			count = 99;
+			count = 98;
 		}
 
 		await message.reply(`**${count}** pfp changes detected in **${days}** days`);
