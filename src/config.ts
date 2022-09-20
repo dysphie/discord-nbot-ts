@@ -6,6 +6,9 @@ const config = {
 		emote_guild_id: "719448049981849620",
 	},
 	patchbot_redirects: {
+			"Steam": "1021875279091740752",
+			"Epic Games": "1021875279091740752",
+			"GOG": "1021875279091740752",
 			"League of Legends": "893193730692108298"
 	},
 	permathreads: [
