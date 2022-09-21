@@ -104,4 +104,5 @@ const isBotOwner = (userId: string) => {
 	return process.env.NBOT_OWNER_ID === userId;
 }
 
+
 export { postAsUser, getGeodataForLocation, INVISIBLE_CHAR, MAX_MESSAGE_LENGTH, isBotOwner, fmtTime };

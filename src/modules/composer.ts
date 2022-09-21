@@ -47,16 +47,20 @@ class Composer extends DatabaseModule
 				}
 			}
 
+			// TODO: Move to util function
 			const audioStr = resp.data['output']['audio'];
+			const imgStr = resp.data['output']['image'];
 
-			// get everything after the first comma in base64string
-			const base64string = audioStr.substring(audioStr.indexOf(","));
+			const audiob64 = audioStr.substring(audioStr.indexOf(","));
+			const imgb64 = imgStr.substring(audioStr.indexOf(","));
 
-			// convert base64 string to WAV file format
-			const buffer = Buffer.from(base64string, 'base64');
-			const attachment = new MessageAttachment(buffer, `${style}_${density}_${temp}.wav`);
+			const audiobuffer = Buffer.from(audiob64, 'base64');
+			const audioatt = new MessageAttachment(audiobuffer, `${style}_${density}_${temp}.wav`);
 
-			await interaction.editReply({ files: [attachment] });
+			const imgbuffer = Buffer.from(imgb64, 'base64');
+			const imgatt = new MessageAttachment(imgbuffer, `${style}_${density}_${temp}.png`);
+
+			await interaction.editReply({ files: [imgatt, audioatt] });
 			
 		} 
 		catch (e) {
