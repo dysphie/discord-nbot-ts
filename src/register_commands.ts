@@ -204,6 +204,46 @@ const complete = new SlashCommandBuilder()
 		.setDescription('Starter text to use. You can use double spaces to indicate line breaks')
 		.setRequired(true))
 
+const compose = new SlashCommandBuilder()
+.setName('compose')
+.setDescription('Compose a song')
+.addStringOption(option =>
+	option
+		.setName('style')
+		.setDescription('Style of music')
+		.setRequired(true)
+		.setChoices([
+			['chamber', 'chamber'],
+			['piano', 'piano'],
+			['rock_and_metal', 'rock_and_metal'],
+			['synth', 'synth'],
+			['church', 'church'],
+			['timpani_strings_harp', 'timpani_strings_harp'],
+			['country', 'country'],
+			['reggae', 'reggae'],
+		]))
+.addStringOption(option =>
+	option
+		.setName('density')
+		.setDescription('Density of notes')
+		.setRequired(true)
+		.setChoices([
+			['low', 'low'],
+			['medium', 'medium'],
+			['high', 'high']
+		]))
+.addStringOption(option =>
+	option
+		.setName('temperature')
+		.setDescription('Randomness scale')
+		.setRequired(true)
+		.setChoices([
+			['low', 'low'],
+			['medium', 'medium'],
+			['high', 'high'],
+			['very_high', 'very_high']
+		]))
+		
 const commands = [
     weather.toJSON(),
     namecolor.toJSON(),
@@ -220,6 +260,7 @@ const commands = [
 	imagine.toJSON(),
 	vocalize.toJSON(),
 	complete.toJSON(),
+	compose.toJSON()
 ];
 
 const registerCommands = async (clientId: string, token: string) => {

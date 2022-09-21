@@ -23,6 +23,7 @@ import { wordleMgr } from "./modules/wordle";
 import neynayer from "./modules/neynayer";
 import openaiMgr from "./modules/openai";
 import blacklist from "./modules/blacklist";
+import composer from "./modules/composer";
 import { ActivityType } from "discord-api-types";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
@@ -56,6 +57,7 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(uberduck);
 		this.moduleMgr.registerModule(openaiMgr);
 		this.moduleMgr.registerModule(blacklist);
+		this.moduleMgr.registerModule(composer);
 	}
 }
 
@@ -77,17 +79,17 @@ client.once("ready", async () => {
 		throw new Error("Client user is null");
 	}
 
-	try {
-		client.user.setPresence({ 
-			activities: [
-				{ name: "My battery is low and it's getting dark", type: `PLAYING` }
-			], 
-			status: 'online' }
-		);
-	}
-	catch (e) {
-		console.log(`Failed to set presence: ${e}`);
-	}
+	// try {
+	// 	client.user.setPresence({ 
+	// 		activities: [
+	// 			{ name: "My battery is low and it's getting dark", type: `PLAYING` }
+	// 		], 
+	// 		status: 'online' }
+	// 	);
+	// }
+	// catch (e) {
+	// 	console.log(`Failed to set presence: ${e}`);
+	// }
 
 	await initMongoDatabase();
 
@@ -185,6 +187,12 @@ client.on("interactionCreate", async (interaction) => {
 
 			case "complete": {
 				await openaiMgr.commandComplete(interaction);
+				break;
+			}
+
+			case "compose": {
+				await composer.commandCompose(interaction);
+				break;
 			}
 		}
 	}
