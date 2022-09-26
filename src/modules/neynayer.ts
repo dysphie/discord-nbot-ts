@@ -42,10 +42,10 @@ class NeyNayer
 
 		// Milliseconds to days
 		const days = Math.round(elapsed / (1000 * 60 * 60 * 24));
-
-		// We do a little trolling
 		const count = pfp.length;
-		await message.reply(`**${count}** pfp changes detected in **${days}** days`);
+		const kdr = (count / days).toFixed(2);
+
+		await message.reply(`**${count}** pfp changes detected in **${days}** days (**${kdr}** GDR)`);
 	}
 
 	async checkNayPfp()
