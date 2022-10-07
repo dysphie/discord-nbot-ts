@@ -234,7 +234,7 @@ const compose = new SlashCommandBuilder()
 		]))
 .addStringOption(option =>
 	option
-		.setName('temperature')
+		.setName('randomness')
 		.setDescription('Randomness scale')
 		.setRequired(true)
 		.setChoices([

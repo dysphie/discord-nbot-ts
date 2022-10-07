@@ -93,6 +93,12 @@ class Uberduck extends DatabaseModule {
 	// }
 
 	async commandVocalize(interaction: CommandInteraction) {
+
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("This command is disabled");
+			return;
+		}
+		
 		const text = interaction.options.getString('prompt');
 		let name = interaction.options.getString('voice');
 

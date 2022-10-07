@@ -19,9 +19,14 @@ class Composer extends DatabaseModule
 
 	async commandCompose(interaction: CommandInteraction)
 	{
+		if (!this.isEnabled(interaction.guildId)) {
+			await interaction.reply("This command is disabled");
+			return;
+		}
+
 		const style = interaction.options.getString('style');
 		const density = interaction.options.getString('density');
-		const temp = interaction.options.getString('temperature');
+		const temp = interaction.options.getString('randomness');
 
 		if (!style || !density || !temp)
 		{
@@ -39,7 +44,7 @@ class Composer extends DatabaseModule
 			let attempts = 0;
 			while (attempts++ < MAX_ATTEMPTS) 
 			{
-				console.log('Attempting compose ' + attempts);
+				//console.log('Attempting compose ' + attempts);
 				await new Promise(resolve => setTimeout(resolve, 1000));
 				resp = await this.checkTaskStatus(taskId);
 				if (resp.data['output'] != null) {
