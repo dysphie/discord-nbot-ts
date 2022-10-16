@@ -82,16 +82,14 @@ class Emoter extends DatabaseModule {
 		// create list of words prefixed with '$' in message.content, don't include the '$'
 		// save non-prefixed words in a variable called nonPrefixedWords
 		const prefixed: string[] = [];
+		
+		const regexMatched = message.content.matchAll(/\$([a-zA-Z0-9]+)/g);
 
-		// split by all whitespace
-		let words = message.content.split(/\s+/);
-		words = [...new Set(words)];
+		for (const match of regexMatched) {
+			prefixed.push(match[1]);
+		}
 
-		words.forEach((word) => {
-			if (word.startsWith("$")) {
-				prefixed.push(word.substring(1));
-			}
-		});
+		prefixed.sort((a,b) => a.length - b.length);
 
 		for (let i = prefixed.length - 1; i >= 0; i--) {
 			const emote = emoterGuild.emojis.cache.find(
