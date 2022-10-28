@@ -70,8 +70,10 @@ class Starboard extends DatabaseModule {
 			reaction = await reaction.fetch();
 		}
 
-		if (reaction.message.partial) {
-			reaction.message = await reaction.message.fetch();
+		let msg = reaction.message;
+
+		if (msg.partial) {
+			msg = await msg.fetch();
 		}
 
 		// check if reaction is a star or reaction count is above 3
@@ -79,17 +81,17 @@ class Starboard extends DatabaseModule {
 			return;
 		}
 
-		if (!this.isEnabled(reaction.message.guildId)) {
+		if (!this.isEnabled(msg.guildId)) {
 			return;
 		}
 
 		// check if starboard channel is available and that we are not reacting in the starboard channel
-		const starboardChannelId = await this.getStarboardChannelId(reaction.message.guildId);
-		if (starboardChannelId === null || reaction.message.channelId === starboardChannelId) {
+		const starboardChannelId = await this.getStarboardChannelId(msg.guildId);
+		if (starboardChannelId === null || msg.channelId === starboardChannelId) {
 			return;
 		}
 
-		const starboardChannel = reaction.message.guild?.channels.cache.get(starboardChannelId);
+		const starboardChannel = msg.guild?.channels.cache.get(starboardChannelId);
 		if (starboardChannel === undefined || !(starboardChannel instanceof TextChannel)) {
 			return;
 		}
@@ -99,9 +101,7 @@ class Starboard extends DatabaseModule {
 			return;
 		}
 
-		const msgId = reaction.message.id;
-
-		const doc = await starredCol.findOne({ msg_id: msgId, guild: reaction.message.guildId });
+		const doc = await starredCol.findOne({ msg_id: msg.id, guild: msg.guildId });
 		if (doc) {
 			// check if message is still in starboard channel
 			const message = await starboardChannel.messages.fetch(doc.star_id);
@@ -109,7 +109,7 @@ class Starboard extends DatabaseModule {
 				if (reaction.count < 1) {
 					// remove message from starboard
 					await message.delete();
-					await starredCol.deleteOne({ msg_id: msgId, guild: reaction.message.guildId });
+					await starredCol.deleteOne({ msg_id: msg.id, guild: msg.guildId });
 					return;
 				}
 
@@ -128,29 +128,31 @@ class Starboard extends DatabaseModule {
 
 			const embed = new MessageEmbed()
 				.setAuthor({
-					name: reaction.message.author.tag,
-					iconURL: reaction.message.author.displayAvatarURL(),
-					url: reaction.message.url,
+					name: msg.author.tag,
+					iconURL: msg.author.displayAvatarURL(),
+					url: msg.url,
 				})
-				.setDescription(reaction.message.content)
-				.setTimestamp(reaction.message.createdAt)
+				.setDescription(msg.content)
+				.setTimestamp(msg.createdAt)
 				.setFooter({ text: `⭐ ${reaction.count}` });
 
-			// const atts: MessageAttachment[] = [];
-			// reaction.message.attachments.forEach((att: MessageAttachment) => {
-			// 	atts.push(att);
-			// })
+			// Include attachments the original message had, if any
+			const newAtts: MessageAttachment[] = [];
+			msg.attachments.forEach((att: MessageAttachment) => {	
+				const newAtt = new MessageAttachment(att.attachment, att.name || 'unnamed'); 
+				newAtts.push(newAtt);
+			});
 
 			// Check if there's media we should append
 			const starred = await starboardChannel.send({ 
 				embeds: [embed], 
-				//attachments: atts
+				files: newAtts
 			});
 			
 			starredCol.insertOne({
-				msg_id: msgId,
+				msg_id: msg.id,
 				star_id: starred.id,
-				guild: reaction.message.guildId
+				guild: msg.guildId
 			});
 		}
 	}
