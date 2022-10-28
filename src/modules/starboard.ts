@@ -1,5 +1,7 @@
 import {
 	CommandInteraction,
+	Message,
+	MessageAttachment,
 	MessageEmbed,
 	MessageReaction,
 	PartialMessageReaction,
@@ -81,9 +83,9 @@ class Starboard extends DatabaseModule {
 			return;
 		}
 
-		// check if starboard channel is available
+		// check if starboard channel is available and that we are not reacting in the starboard channel
 		const starboardChannelId = await this.getStarboardChannelId(reaction.message.guildId);
-		if (starboardChannelId === null) {
+		if (starboardChannelId === null || reaction.message.channelId === starboardChannelId) {
 			return;
 		}
 
@@ -134,8 +136,17 @@ class Starboard extends DatabaseModule {
 				.setTimestamp(reaction.message.createdAt)
 				.setFooter({ text: `⭐ ${reaction.count}` });
 
+			const atts: MessageAttachment[] = [];
+			reaction.message.attachments.forEach((att: MessageAttachment) => {
+				atts.push(att);
+			})
 
-			const starred = await starboardChannel.send({ embeds: [embed] });
+			// Check if there's media we should append
+			const starred = await starboardChannel.send({ 
+				embeds: [embed], 
+				attachments: atts
+			});
+			
 			starredCol.insertOne({
 				msg_id: msgId,
 				star_id: starred.id,
