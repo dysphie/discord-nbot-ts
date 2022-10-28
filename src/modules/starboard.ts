@@ -136,15 +136,15 @@ class Starboard extends DatabaseModule {
 				.setTimestamp(reaction.message.createdAt)
 				.setFooter({ text: `⭐ ${reaction.count}` });
 
-			const atts: MessageAttachment[] = [];
-			reaction.message.attachments.forEach((att: MessageAttachment) => {
-				atts.push(att);
-			})
+			// const atts: MessageAttachment[] = [];
+			// reaction.message.attachments.forEach((att: MessageAttachment) => {
+			// 	atts.push(att);
+			// })
 
 			// Check if there's media we should append
 			const starred = await starboardChannel.send({ 
 				embeds: [embed], 
-				attachments: atts
+				//attachments: atts
 			});
 			
 			starredCol.insertOne({
