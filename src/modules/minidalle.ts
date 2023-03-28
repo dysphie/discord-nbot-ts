@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { bold, userMention } from "@discordjs/builders";
 import sharp from "sharp";
@@ -8,7 +8,7 @@ const API_URL = 'https://bf.dallemini.ai/generate';
 
 class MiniDalle extends DatabaseModule {
 
-	async commandCreate(interaction: CommandInteraction) {
+	async commandCreate(interaction: ChatInputCommandInteraction) {
 
 
 		if (!this.isEnabled(interaction.guildId)) {
@@ -36,8 +36,8 @@ class MiniDalle extends DatabaseModule {
 		for (let attempts = 0; attempts < 20; attempts++) {
 			try {
 				const collage = await this.create(prompt);
-				
-				const attachment = new AttachmentBuilder(collage, "dalle.png");
+
+				const attachment = new AttachmentBuilder(collage, { name: "dalle.png" });
 				const embed = new EmbedBuilder();
 
 				embed.setDescription(`"${prompt}" by ${userMention(interaction.user.id)}`);
@@ -66,7 +66,7 @@ class MiniDalle extends DatabaseModule {
 			}
 		}
 
-		
+
 	}
 
 	async create(prompt: string): Promise<Buffer> {

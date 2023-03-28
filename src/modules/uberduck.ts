@@ -1,6 +1,6 @@
 import { bold, spoiler, userMention } from "@discordjs/builders";
 import axios from "axios";
-import { AutocompleteInteraction, CommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
+import { AutocompleteInteraction, ChatInputCommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
 import dotenv from "dotenv";
 import { DatabaseModule } from "../module_mgr";
 import FuzzySearch from 'fuzzy-search';
@@ -92,13 +92,13 @@ class Uberduck extends DatabaseModule {
 	// 	return resp.data;
 	// }
 
-	async commandVocalize(interaction: CommandInteraction) {
+	async commandVocalize(interaction: ChatInputCommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This command is disabled");
 			return;
 		}
-		
+
 		const text = interaction.options.getString('prompt');
 		let name = interaction.options.getString('voice');
 
@@ -135,7 +135,7 @@ class Uberduck extends DatabaseModule {
 			const buffer = await this.createSpeechRaw(text, name);
 			const actorName = this.voices.find(voice => voice.name === name)?.displayName ?? 'Unknown';
 
-			const attachment = new AttachmentBuilder(buffer, "speech.wav");
+			const attachment = new AttachmentBuilder(buffer, { name: "speech.wav" });
 			const embed = new EmbedBuilder();
 
 			const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;

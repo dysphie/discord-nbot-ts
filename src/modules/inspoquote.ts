@@ -3,7 +3,7 @@ import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 
 class InspiroBot extends DatabaseModule {
-	
+
 	async commandInspire(interaction: CommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {

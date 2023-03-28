@@ -1,8 +1,11 @@
 import {
 	AuditLogEvent,
 	BaseGuildTextChannel,
+	ForumChannel,
+	TextBasedChannelMixin,
 	NewsChannel,
 	TextChannel,
+	ThreadChannel,
 	Webhook,
 } from "discord.js";
 
@@ -13,9 +16,8 @@ class WebhookManager {
 		console.log("WebhookManager module loaded");
 	}
 
-	async getWebhookForChannel(
-		channel: BaseGuildTextChannel
-	): Promise<Webhook | undefined> {
+	async getWebhookForChannel(channel: TextChannel): Promise<Webhook | undefined>
+	{
 		const me = channel.client.user;
 
 		let webhook = webhookCache.get(channel.id);

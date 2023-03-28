@@ -5,7 +5,7 @@ import { DatabaseModule } from "../module_mgr";
 
 class Yeller extends DatabaseModule {
 
-	constructor(name: string, description: string) 
+	constructor(name: string, description: string)
 	{
 		super(name, description);
 		if (!process.env.NBOT_MONGODB_AES_KEY) {
@@ -18,7 +18,7 @@ class Yeller extends DatabaseModule {
 		if (message.guildId === null) {
 			return;
 		}
-		
+
 		if (!this.isEnabled(message.guildId)) {
 			return;
 		}

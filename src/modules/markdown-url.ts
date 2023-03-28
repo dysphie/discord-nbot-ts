@@ -8,7 +8,7 @@ class MarkdownUrl extends DatabaseModule {
     if (!this.isEnabled(message.guildId)) {
       return;
     }
-    
+
     // Repost as the bot which can use markdown
     const member = message.member as GuildMember;
     const channel = message.channel as TextChannel | ThreadChannel;

@@ -20,7 +20,7 @@ async function postAsUser(
 
 	const isThread = channel.isThread();
 	const parentChannel = isThread ? channel.parent : channel;
-	if (!parentChannel) {
+	if (!(parentChannel instanceof TextChannel)) {
 		return false;
 	}
 

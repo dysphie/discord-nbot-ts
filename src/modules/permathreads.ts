@@ -1,6 +1,6 @@
 import {
 	Client,
-	CommandInteraction,
+	ChatInputCommandInteraction,
 	TextChannel,
 	ThreadChannel,
 } from "discord.js";
@@ -48,7 +48,7 @@ class Permathreader extends DatabaseModule {
 		}
 	}
 
-	async handleInteraction(interaction: CommandInteraction) {
+	async handleInteraction(interaction: ChatInputCommandInteraction) {
 		const threadName = interaction.options.getString("name");
 		if (!threadName) {
 			interaction.reply("Must specify thread name");

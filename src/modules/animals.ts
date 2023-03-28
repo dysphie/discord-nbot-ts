@@ -1,10 +1,10 @@
 import axios from "axios";
-import { CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 
 class RandomAnimal extends DatabaseModule {
 
-	async commandCat(interaction: CommandInteraction) {
+	async commandCat(interaction: ChatInputCommandInteraction) {
 		try {
 			const resp = await axios.get("https://api.thecatapi.com/v1/images/search");
 			const imgUrl = resp.data[0].url;
@@ -14,7 +14,7 @@ class RandomAnimal extends DatabaseModule {
 		}
 	}
 
-	async commandDog(interaction: CommandInteraction) {
+	async commandDog(interaction: ChatInputCommandInteraction) {
 
 		try {
 			const resp = await axios.get("https://dog.ceo/api/breeds/image/random");
@@ -25,7 +25,7 @@ class RandomAnimal extends DatabaseModule {
 		}
 	}
 
-	async commandLizard(interaction: CommandInteraction) {
+	async commandLizard(interaction: ChatInputCommandInteraction) {
 		try {
 			const resp = await axios.get("https://nekos.life/api/v2/img/lizard");
 			const lizardUrl = resp.data.url;
@@ -35,7 +35,7 @@ class RandomAnimal extends DatabaseModule {
 		}
 	}
 
-	async commandAnimal(interaction: CommandInteraction) {
+	async commandAnimal(interaction: ChatInputCommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This command is disabled");

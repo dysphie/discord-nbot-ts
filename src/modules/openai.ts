@@ -1,4 +1,4 @@
-import { CommandInteraction, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { Configuration, OpenAIApi } from "openai";
 import { DatabaseModule } from "../module_mgr";
 import { config } from "dotenv";
@@ -13,7 +13,7 @@ console.log(`Initialized OpenAI, using token ${process.env.OPENAI_API_TOKEN}`);
 
 class OpenAIManager extends DatabaseModule
 {
-	async commandComplete(interaction: CommandInteraction)
+	async commandComplete(interaction: ChatInputCommandInteraction)
 	{
 		let message = interaction.options.getString('prompt');
 		if (message === null)

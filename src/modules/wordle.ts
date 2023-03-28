@@ -1,4 +1,4 @@
-import { CommandInteraction, Message, EmbedBuilder } from "discord.js";
+import { ChatInputCommandInteraction, Message, EmbedBuilder } from "discord.js";
 import { ObjectId } from "mongodb";
 import sharp from "sharp";
 import { DatabaseModule } from "../module_mgr";
@@ -208,8 +208,8 @@ class WordleStats {
 
 class WordleInterface {
 
-	static async replyToWordleInteraction(msg: Message | CommandInteraction, game: Wordle, guildId: string) {
-		
+	static async replyToWordleInteraction(msg: Message | ChatInputCommandInteraction, game: Wordle, guildId: string) {
+
 		const gameboard = await WordleInterface.buildBoard(game);
 
 		const embeds = [];
@@ -232,7 +232,7 @@ class WordleInterface {
 			embeds.push(embed);
 		}
 
-		if (msg instanceof CommandInteraction) {
+		if (msg instanceof ChatInputCommandInteraction) {
 			await msg.reply({
 				files: [gameboard],
 				embeds: embeds
@@ -250,7 +250,7 @@ class WordleInterface {
 
 		const embed = new EmbedBuilder();
 
-		// get the elapsed time 
+		// get the elapsed time
 		let description = `\n\n**Elapsed**: \`${fmtTime(wordle.elapsedTime)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
 		if (wordle.elapsedTime == stats.bestTime) {
 			description += ' 🏅';
@@ -314,11 +314,11 @@ class WordleInterface {
 				else {
 					const color = guessStatusToColor(GuessStatus.Unknown);
 					svgContent += `
-	        	<rect 
-					x="${x}" 
-					y="${y}" 
-					width="${BOARD_TILE_WIDTH}" 
-					height="${BOARD_TILE_HEIGHT}" 
+	        	<rect
+					x="${x}"
+					y="${y}"
+					width="${BOARD_TILE_WIDTH}"
+					height="${BOARD_TILE_HEIGHT}"
 					fill="${color}"/>
 	      `
 				}
@@ -348,20 +348,20 @@ class WordleInterface {
 
 				const color = guessStatusToColor(guessStatus);
 				svgContent += `
-					<rect 
-						x="${x}" 
-						y="${y}" 
-						width="${KB_BUTTON_WIDTH}" 
-						height="${KB_BUTTON_HEIGHT}" 
+					<rect
+						x="${x}"
+						y="${y}"
+						width="${KB_BUTTON_WIDTH}"
+						height="${KB_BUTTON_HEIGHT}"
 						fill="${color}"
 						/>
-					<text 
-						x="${x + KB_BUTTON_WIDTH / 2}" 
-						y="${y + KB_BUTTON_HEIGHT / 2 + 16}" 
+					<text
+						x="${x + KB_BUTTON_WIDTH / 2}"
+						y="${y + KB_BUTTON_HEIGHT / 2 + 16}"
 						font-size="${KB_FONT_SIZE}"
 						font-family="Arial"
 						font-weight="bold"
-						text-anchor="middle" 
+						text-anchor="middle"
 						fill="white"
 						>
 						${key.toUpperCase()}
@@ -385,7 +385,7 @@ class WordleManager extends DatabaseModule {
 
 	onGoing: Map<string, Wordle> = new Map<string, Wordle>();
 
-	
+
 
 	async debugGetStats(guildId: string) {
 
@@ -394,7 +394,7 @@ class WordleManager extends DatabaseModule {
 		await wordleStats.recomputeStats(guildId);
 	}
 
-	async commandWordle(interaction: CommandInteraction) {
+	async commandWordle(interaction: ChatInputCommandInteraction) {
 
 		if (!interaction.guildId) {
 			await interaction.reply('This command can only be used in a server');

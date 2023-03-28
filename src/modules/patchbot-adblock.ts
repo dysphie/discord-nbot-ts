@@ -1,10 +1,7 @@
-import { Message, EmbedBuilder, TextChannel, ThreadChannel } from "discord.js";
-import config from "../config";
+import { Message, Embed } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 
 class PatchBotAdBlock extends DatabaseModule {
-
-	
 
 	async handleMessage(message: Message) {
 		if (
@@ -19,7 +16,7 @@ class PatchBotAdBlock extends DatabaseModule {
 			return;
 		}
 
-		const repostEmbeds: EmbedBuilder[] = [];
+		const embedsToRepost: Embed[] = [];
 
 		message.embeds.forEach((embed) => {
 			if (
@@ -28,29 +25,14 @@ class PatchBotAdBlock extends DatabaseModule {
 					"This update is brought to you by"
 				) === -1
 			) {
-				repostEmbeds.push(embed);
+				embedsToRepost.push(embed);
 			}
 		});
 
-		let channel = message.channel;
+		// TODO: Re-add channel redirects
 
-		if (repostEmbeds.length > 0) {
-			const gameName = repostEmbeds[0].author?.name;
-			if (gameName) {
-				const redirects: { [key: string]: string } = config.patchbot_redirects;
-				const redirectId = redirects[gameName];
-
-				if (redirectId) {
-					const foundChannel = message.client.channels.cache.get(redirectId);
-					if (foundChannel instanceof TextChannel || foundChannel instanceof ThreadChannel) {
-						channel = foundChannel;
-					}
-				}
-			}
-		}
-
-		await channel.send({
-			embeds: repostEmbeds
+		await message.channel.send({
+			embeds: embedsToRepost
 		});
 
 		await message.delete();

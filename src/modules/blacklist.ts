@@ -1,5 +1,5 @@
 import { userMention } from "@discordjs/builders";
-import { ChatInputCommandInteraction, CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
 
