@@ -1,6 +1,6 @@
 import { bold, spoiler, userMention } from "@discordjs/builders";
 import axios from "axios";
-import { AutocompleteInteraction, CommandInteraction, MessageAttachment, MessageEmbed } from "discord.js";
+import { AutocompleteInteraction, CommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
 import dotenv from "dotenv";
 import { DatabaseModule } from "../module_mgr";
 import FuzzySearch from 'fuzzy-search';
@@ -135,8 +135,8 @@ class Uberduck extends DatabaseModule {
 			const buffer = await this.createSpeechRaw(text, name);
 			const actorName = this.voices.find(voice => voice.name === name)?.displayName ?? 'Unknown';
 
-			const attachment = new MessageAttachment(buffer, "speech.wav");
-			const embed = new MessageEmbed();
+			const attachment = new AttachmentBuilder(buffer, "speech.wav");
+			const embed = new EmbedBuilder();
 
 			const textShort = text.length > 1000 ? text.substring(0, 1000) + '...' : text;
 			embed.setDescription(`${bold(actorName)} requested by ${userMention(interaction.user.id)}\n` +

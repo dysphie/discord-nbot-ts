@@ -18,11 +18,11 @@ const animal = new SlashCommandBuilder()
     .setDescription('The animal to post')
     .setRequired(true)
     .setName('species')
-    .setChoices([
-        ['cat', 'cat'],
-        ['dog', 'dog'],
-        ['lizard', 'lizard'],
-    ]))
+    .setChoices(
+		{name: 'cat', value: 'cat'},
+		{name: 'dog', value: 'dog'},
+		{name: 'lizard', value: 'lizard'},
+    ))
 
 const namecolor = new SlashCommandBuilder()
     .setName('namecolor')
@@ -64,22 +64,7 @@ const mimic = new SlashCommandBuilder()
 const mimic_optout = new SlashCommandBuilder()
 	.setName('mimic_optout')
 	.setDescription('Opts out of mimic')
-	
-// const stats_wordle = new SlashCommandBuilder()
-// 	.setName('stats_wordle')
-// 	.setDescription('Posts the top plays in Wordle')
-// 	.addStringOption(option =>
-// 		option.setName('type')
-// 			.setDescription('Type of stats to get')
-// 			.setRequired(true)
-// 			.setChoices([
-// 				['fastest', 'fastest'],
-// 				['lost_words', 'lost_words'],
-// 				['slowest', 'slowest'],
-// 				['longest_words', 'longest_words'],
-// 			]))
 
-                    
 const inspire = new SlashCommandBuilder()
     .setName('inspire')
     .setDescription('Retrieves a random inspirational quote')
@@ -100,7 +85,7 @@ const wordle = new SlashCommandBuilder()
         option.setName('length')
             .setDescription('The length of the words to use')
             .setRequired(false))
-    .addStringOption(option => 
+    .addStringOption(option =>
         option.setName('starter_words')
             .setDescription('Space separated list of guesses to preload into the game')
             .setRequired(false))
@@ -149,7 +134,7 @@ const emoter = new SlashCommandBuilder()
     subcommand
         .setName('disable')
         .setDescription('Disables an emote keyword')
-        .addStringOption(option => option.setName('keyword').setDescription('Emote keyword').setRequired(true)))        
+        .addStringOption(option => option.setName('keyword').setDescription('Emote keyword').setRequired(true)))
 
 
 const moduler = new SlashCommandBuilder()
@@ -178,7 +163,7 @@ const imagine = new SlashCommandBuilder()
 	.addStringOption(option =>
 		option.setName('prompt')
 			.setDescription('Prompt to generate an image from')
-			.setRequired(true))	
+			.setRequired(true))
 
 const vocalize = new SlashCommandBuilder()
 .setName('vocalize')
@@ -193,6 +178,11 @@ const vocalize = new SlashCommandBuilder()
 	option.setName('prompt')
 		.setDescription('Prompt to generate speech from')
 		.setRequired(true))
+
+
+const stats = new SlashCommandBuilder()
+.setName('stats')
+.setDescription('Show usage stats for the bot')
 
 
 const complete = new SlashCommandBuilder()
@@ -212,38 +202,38 @@ const compose = new SlashCommandBuilder()
 		.setName('style')
 		.setDescription('Style of music')
 		.setRequired(true)
-		.setChoices([
-			['chamber', 'chamber'],
-			['piano', 'piano'],
-			['rock_and_metal', 'rock_and_metal'],
-			['synth', 'synth'],
-			['church', 'church'],
-			['timpani_strings_harp', 'timpani_strings_harp'],
-			['country', 'country'],
-			['reggae', 'reggae'],
-		]))
+		.setChoices(
+			{ name: 'chamber', value: 'chamber' },
+			{ name: 'piano', value: 'piano' },
+			{ name: 'rock_and_metal', value: 'rock_and_metal' },
+			{ name: 'synth', value: 'synth' },
+			{ name: 'church', value: 'church' },
+			{ name: 'timpani_strings_harp', value: 'timpani_strings_harp' },
+			{ name: 'country', value: 'country' },
+			{ name: 'reggae', value: 'reggae' },
+		))
 .addStringOption(option =>
 	option
 		.setName('density')
 		.setDescription('Density of notes')
 		.setRequired(true)
-		.setChoices([
-			['low', 'low'],
-			['medium', 'medium'],
-			['high', 'high']
-		]))
+		.setChoices(
+			{name: 'low', value: 'low'},
+			{name: 'medium', value: 'medium'},
+			{name: 'high', value: 'high'},
+		))
 .addStringOption(option =>
 	option
 		.setName('randomness')
 		.setDescription('Randomness scale')
 		.setRequired(true)
-		.setChoices([
-			['low', 'low'],
-			['medium', 'medium'],
-			['high', 'high'],
-			['very_high', 'very_high']
-		]))
-		
+		.setChoices(
+			{ name: 'low', value: 'low' },
+			{ name: 'medium', value: 'medium' },
+			{ name: 'high', value: 'high' },
+			{ name: 'very_high', value: 'very_high' }
+		  ))
+
 const commands = [
     weather.toJSON(),
     namecolor.toJSON(),
@@ -257,6 +247,7 @@ const commands = [
 	mimic.toJSON(),
 	mimic_optout.toJSON(),
 	//stats_wordle.toJSON(),
+	stats.toJSON(),
 	imagine.toJSON(),
 	vocalize.toJSON(),
 	complete.toJSON(),

@@ -1,10 +1,11 @@
 import {
+	Attachment,
+	AttachmentBuilder,
 	CommandInteraction,
-	Message,
-	MessageAttachment,
-	MessageEmbed,
+	EmbedBuilder,
 	MessageReaction,
 	PartialMessageReaction,
+	PermissionsBitField,
 	TextChannel,
 } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
@@ -14,12 +15,11 @@ class Starboard extends DatabaseModule {
 
 
 	async setStarboardChannel(channelId: string, guildId: string) {
-
 		const starboardCol = getMongoDatabase()?.collection("starboard.channels");
 		if (starboardCol === undefined) {
 			return;
 		}
-		
+
 		await starboardCol.updateOne(
 			{ guild: guildId },
 			{ $set: { channel: channelId } },
@@ -50,13 +50,13 @@ class Starboard extends DatabaseModule {
 			return;
 		}
 
-		if (!interaction?.memberPermissions?.has("MANAGE_GUILD")) {
+		if (!interaction?.memberPermissions?.has(PermissionsBitField.Flags.ManageGuild)) {
 			await interaction.reply("You must have the Manage Server permission to use this command.");
 			return;
 		}
 
-		const channel = interaction.options.getChannel("channel");
-		if (channel === null) {
+		const channel = interaction.options.get("channel")?.channel
+		if (!channel) {
 			await interaction.reply("You must specify a channel");
 			return;
 		}
@@ -113,20 +113,19 @@ class Starboard extends DatabaseModule {
 					return;
 				}
 
-				const embed = message.embeds[0];
-				if (embed) {
-					embed.footer = {
-						text: `⭐ ${reaction.count}`,
-					};
-					await message.edit({ embeds: [embed] });
-				}
+				const newEmbed = EmbedBuilder.from(message.embeds[0]);
+				newEmbed.setFooter({
+					text: `⭐ ${reaction.count}`
+				});
+
+				await message.edit({ embeds: [newEmbed] });
 			}
 		} else {
 			if (reaction.count < 1) {
 				return;
 			}
 
-			const embed = new MessageEmbed()
+			const embed = new EmbedBuilder()
 				.setAuthor({
 					name: msg.author.tag,
 					iconURL: msg.author.displayAvatarURL(),
@@ -136,19 +135,14 @@ class Starboard extends DatabaseModule {
 				.setTimestamp(msg.createdAt)
 				.setFooter({ text: `⭐ ${reaction.count}` });
 
-			// Include attachments the original message had, if any
-			const newAtts: MessageAttachment[] = [];
-			msg.attachments.forEach((att: MessageAttachment) => {	
-				const newAtt = new MessageAttachment(att.attachment, att.name || 'unnamed'); 
-				newAtts.push(newAtt);
-			});
+			// TODO: Include attachments the original message had, if any
 
 			// Check if there's media we should append
-			const starred = await starboardChannel.send({ 
-				embeds: [embed], 
-				files: newAtts
+			const starred = await starboardChannel.send({
+				embeds: [embed],
+				//files: newAtts
 			});
-			
+
 			starredCol.insertOne({
 				msg_id: msg.id,
 				star_id: starred.id,

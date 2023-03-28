@@ -1,4 +1,4 @@
-import { CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { getMongoDatabase } from "./mongodb";
 
 const MODULE_MASTER = '232909513378758657';
@@ -26,7 +26,7 @@ class Module
   {
     this.enabledGuildIds.add(guildId);
   }
-  
+
   disable(guildId: string)
   {
     this.enabledGuildIds.delete(guildId);
@@ -46,9 +46,9 @@ class DatabaseModule extends Module
     const dbModules = await db.collection('enabled_modules').find({
       module: this.name
     }).toArray();
-    
+
     dbModules.forEach((dbModule) => {
-      
+
       this.enabledGuildIds.add(dbModule.guild);
       console.log(`[${this.name}] Enabled for guild ${dbModule.guild}`);
     });
@@ -115,7 +115,7 @@ class ModuleManager
     console.log(`✔️ Module ${module.name} registered`);
   }
 
-  async commandListModules(interaction: CommandInteraction, guildId: string)
+  async commandListModules(interaction: ChatInputCommandInteraction, guildId: string)
   {
     if (this.modules.length === 0) {
       interaction.reply(`No modules registered`);
@@ -132,7 +132,7 @@ class ModuleManager
     await interaction.reply(msg);
   }
 
-  async commandModule(interaction: CommandInteraction) {
+  async commandModule(interaction: ChatInputCommandInteraction) {
 
     const app = await interaction.client.application?.fetch();
     if (!app || interaction.user.id !== app.owner?.id) {
@@ -167,7 +167,7 @@ class ModuleManager
     }
   }
 
-  async commandToggleModule(interaction: CommandInteraction, guildId: string, state: boolean) {
+  async commandToggleModule(interaction: ChatInputCommandInteraction, guildId: string, state: boolean) {
 
     const moduleName = interaction.options.getString('name');
     if (moduleName === null) {

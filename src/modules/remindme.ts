@@ -1,5 +1,5 @@
 import { userMention } from "@discordjs/builders";
-import { Client, CommandInteraction, GuildMember, MessageEmbed, TextChannel } from "discord.js";
+import { Client, CommandInteraction, GuildMember, EmbedBuilder, TextChannel, ChatInputCommandInteraction } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
 
@@ -27,10 +27,10 @@ class Reminder extends DatabaseModule
       const guild = bot.guilds.cache.get(reminder.guild_id);
       if (guild) {
         const member = await guild.members.fetch(reminder.user_id);
-        if (member) {  
+        if (member) {
           const channel = await guild.channels.fetch(reminder.channel_id);
           if (channel && channel instanceof TextChannel) {
-            const embed = new MessageEmbed();
+            const embed = new EmbedBuilder();
             embed.setTitle("Reminder");
             embed.setDescription(reminder.message);
             embed.setColor("#00ff00");
@@ -41,12 +41,12 @@ class Reminder extends DatabaseModule
           }
         }
       }
-      
+
       await reminders.deleteOne({ _id: reminder._id });
     }
   }
 
-  async commandRemind(interaction: CommandInteraction)
+  async commandRemind(interaction: ChatInputCommandInteraction)
   {
     if (!(interaction.member instanceof GuildMember)) {
       return;

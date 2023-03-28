@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageEmbed } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction, EmbedBuilder } from "discord.js";
 import axios from "axios";
 import getWeatherCodeDescription from "./weather_codes";
 import { getGeodataForLocation } from "../../utils";
@@ -33,7 +33,7 @@ class Weather extends DatabaseModule {
 		this.guildId = guildId;
 	}
 
-	async commandWeather(interaction: CommandInteraction) {
+	async commandWeather(interaction: ChatInputCommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
 			interaction.reply("This command is disabled");
@@ -50,7 +50,7 @@ class Weather extends DatabaseModule {
 		if (!location) {
 			const locationsCol = getMongoDatabase()?.collection("locations");
 			if (locationsCol != undefined) {
-				
+
 				const userLocation = await locationsCol.findOne({ _id: Long.fromString(interaction.user.id) });
 
 				if (userLocation && userLocation.addr != null) {
@@ -191,7 +191,7 @@ class Weather extends DatabaseModule {
 			hour12: false,
 		});
 
-		const embed = new MessageEmbed().setFields([
+		const embed = new EmbedBuilder().setFields([
 			{ name: `Forecast`, value: forecast, inline: true },
 		]);
 

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CommandInteraction, MessageEmbed } from "discord.js";
+import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 
 class InspiroBot extends DatabaseModule {
@@ -13,7 +13,7 @@ class InspiroBot extends DatabaseModule {
 
 		try {
 			const quoteUrl = await axios.get("https://inspirobot.me/api?generate=true");
-			const embed = new MessageEmbed();
+			const embed = new EmbedBuilder();
 			embed.setImage(quoteUrl.data);
 			embed.setFooter({
 				text: "🧠 Powered by inspirobot.me",

@@ -1,12 +1,12 @@
 import { userMention } from "@discordjs/builders";
-import { CommandInteraction } from "discord.js";
+import { ChatInputCommandInteraction, CommandInteraction } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { getMongoDatabase } from "../mongodb";
 
 class Blacklist extends DatabaseModule
 {
 	blacklistIds: string[] = [];
-	
+
 	async cacheBlacklist() {
 		const blacklist = await getMongoDatabase()?.collection("blacklist").find({}).toArray();
 		if (blacklist) {
@@ -16,15 +16,15 @@ class Blacklist extends DatabaseModule
 		}
 	}
 
-	async commandBlacklist(interaction: CommandInteraction) {
+	async commandBlacklist(interaction: ChatInputCommandInteraction) {
 		await this.toggleBlacklist(interaction, true);
 	}
 
-	async commandUnblacklist(interaction: CommandInteraction) {
+	async commandUnblacklist(interaction: ChatInputCommandInteraction) {
 		await this.toggleBlacklist(interaction, false);
 	}
 
-	async toggleBlacklist(interaction: CommandInteraction, state: boolean) {
+	async toggleBlacklist(interaction: ChatInputCommandInteraction, state: boolean) {
 
 		const userId = interaction.options.getString('user_id');
 		if (!userId) {

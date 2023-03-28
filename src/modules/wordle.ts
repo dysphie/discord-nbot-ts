@@ -1,4 +1,4 @@
-import { CommandInteraction, Message, MessageEmbed } from "discord.js";
+import { CommandInteraction, Message, EmbedBuilder } from "discord.js";
 import { ObjectId } from "mongodb";
 import sharp from "sharp";
 import { DatabaseModule } from "../module_mgr";
@@ -248,7 +248,7 @@ class WordleInterface {
 
 	static async buildStatsEmbed(wordle: Wordle, guildId: string, stats: GuildStats) {
 
-		const embed = new MessageEmbed();
+		const embed = new EmbedBuilder();
 
 		// get the elapsed time 
 		let description = `\n\n**Elapsed**: \`${fmtTime(wordle.elapsedTime)}\` (Best: \`${fmtTime(stats.bestTime)}\`)`;
@@ -484,7 +484,7 @@ class WordleManager extends DatabaseModule {
 				}
 			case WordGuessResult.TooRecent:
 				{
-					const embed = new MessageEmbed();
+					const embed = new EmbedBuilder();
 					embed.setDescription(`❌ You've recently guessed this word`);
 					embed.setColor(0xFF0000);
 					await message.reply({
@@ -496,7 +496,7 @@ class WordleManager extends DatabaseModule {
 				}
 			case WordGuessResult.AlreadyGuessed:
 				{
-					const embed = new MessageEmbed();
+					const embed = new EmbedBuilder();
 					embed.setDescription(`❌ You've already guessed this word`);
 					embed.setColor(0xFF0000);
 					await message.reply({

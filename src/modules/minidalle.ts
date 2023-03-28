@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CommandInteraction, MessageAttachment, MessageEmbed } from "discord.js";
+import { CommandInteraction, AttachmentBuilder, EmbedBuilder } from "discord.js";
 import { DatabaseModule } from "../module_mgr";
 import { bold, userMention } from "@discordjs/builders";
 import sharp from "sharp";
@@ -37,8 +37,8 @@ class MiniDalle extends DatabaseModule {
 			try {
 				const collage = await this.create(prompt);
 				
-				const attachment = new MessageAttachment(collage, "dalle.png");
-				const embed = new MessageEmbed();
+				const attachment = new AttachmentBuilder(collage, "dalle.png");
+				const embed = new EmbedBuilder();
 
 				embed.setDescription(`"${prompt}" by ${userMention(interaction.user.id)}`);
 				embed.setFooter({

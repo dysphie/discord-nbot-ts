@@ -1,4 +1,5 @@
 import {
+	AuditLogEvent,
 	BaseGuildTextChannel,
 	NewsChannel,
 	TextChannel,
@@ -27,7 +28,8 @@ class WebhookManager {
 			webhook = webhooks.find((w) => w.owner?.id === me?.id);
 			if (!webhook) {
 				try {
-					webhook = await channel.createWebhook(`${me?.username}`, {
+					webhook = await channel.createWebhook({
+						name: `${me?.username}`,
 						avatar: me?.avatarURL(),
 					});
 				} catch (e) {
@@ -49,7 +51,7 @@ class WebhookManager {
 
 		const auditLogs = await channel.guild.fetchAuditLogs({
 			limit: 1,
-			type: "WEBHOOK_DELETE",
+			type: AuditLogEvent.WebhookDelete ,
 		});
 
 		const auditLog = auditLogs.entries.first();

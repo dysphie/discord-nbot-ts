@@ -1,4 +1,4 @@
-import { Message, MessageEmbed, TextChannel, ThreadChannel } from "discord.js";
+import { Message, EmbedBuilder, TextChannel, ThreadChannel } from "discord.js";
 import config from "../config";
 import { DatabaseModule } from "../module_mgr";
 
@@ -19,7 +19,7 @@ class PatchBotAdBlock extends DatabaseModule {
 			return;
 		}
 
-		const repostEmbeds: MessageEmbed[] = [];
+		const repostEmbeds: EmbedBuilder[] = [];
 
 		message.embeds.forEach((embed) => {
 			if (

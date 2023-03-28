@@ -1,4 +1,4 @@
-import { CommandInteraction, MessageEmbed } from "discord.js";
+import { CommandInteraction, EmbedBuilder } from "discord.js";
 import { Configuration, OpenAIApi } from "openai";
 import { DatabaseModule } from "../module_mgr";
 import { config } from "dotenv";
@@ -50,7 +50,7 @@ class OpenAIManager extends DatabaseModule
 		const autocompleted = response.data.choices[0].text?.substring(0, 2000) || '';
 		const content = `${bold(message)}${autocompleted}`;
 
-		const embed = new MessageEmbed();
+		const embed = new EmbedBuilder();
 		embed.setDescription(content);
 		embed.setColor(0x3BA55D);
 		embed.setFooter({

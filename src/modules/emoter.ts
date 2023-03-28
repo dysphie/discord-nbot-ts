@@ -7,10 +7,12 @@ import {
 	CommandInteraction,
 	GuildEmoji,
 	GuildMember,
+	ChatInputCommandInteraction,
 } from "discord.js";
 import { getMongoDatabase } from "../mongodb";
 import { isBotOwner, postAsUser } from "../utils";
 import { DatabaseModule } from "../module_mgr";
+import { GuildEmojiCreateOptions } from "discord.js";
 
 const EMOTER_GUILD_ID = "719448049981849620";
 const GLOBAL_GUILD = '0';
@@ -39,7 +41,7 @@ class Emoter extends DatabaseModule {
 	}
 
 	async setupDatabaseIndexes() {
-		
+
 		const emoterCollection = getMongoDatabase()?.collection("emoter.emotes3");
 		if (emoterCollection === undefined) {
 			return;
@@ -49,7 +51,7 @@ class Emoter extends DatabaseModule {
 	}
 
 	async handleMessage(message: Message): Promise<boolean> {
-		
+
 		if (message == null || message.guildId === null) {
 			return false;
 		}
@@ -82,7 +84,7 @@ class Emoter extends DatabaseModule {
 		// create list of words prefixed with '$' in message.content, don't include the '$'
 		// save non-prefixed words in a variable called nonPrefixedWords
 		const prefixed: string[] = [];
-		
+
 		const regexMatched = message.content.matchAll(/\$([a-zA-Z0-9]+)/g);
 
 		for (const match of regexMatched) {
@@ -108,9 +110,9 @@ class Emoter extends DatabaseModule {
 		// check if we have prefixed left
 		if (prefixed.length !== 0) {
 			// find emotes that match the words without the '$'
-			const cursor = emotes.find({ 
+			const cursor = emotes.find({
 				guild: { $in: [GLOBAL_GUILD, message.guildId] },
-				name: { $in: prefixed } 
+				name: { $in: prefixed }
 			});
 
 			for await (const doc of cursor) {
@@ -152,17 +154,14 @@ class Emoter extends DatabaseModule {
 
 		if (cacheSortedByOldest.size >= 45) {
 			const emoji = cacheSortedByOldest.first();
-			// UNSAFE: assume it will delete gracefully
-			emoji?.delete();
-			// try {
-			// 	console.log(`Deleting emote ${emoji?.name}`);
-			// 	await emoji?.delete();
-			// } catch (e) {
-			// 	console.error(`Error deleting oldest emoji in cache ${emoji?.name}`);
-			// }
+			emoji?.delete(); // FIXME: we are assuming it will delete gracefully
 		}
 
-		const uploadedEmote = await guild.emojis.create(url, name);
+		const uploadedEmote = await guild.emojis.create({
+			name: name,
+			attachment: url
+		});
+
 		return uploadedEmote;
 	}
 
@@ -199,9 +198,10 @@ class Emoter extends DatabaseModule {
 		}
 	}
 
-	async commandFind(interaction: CommandInteraction) {
-		const keyword = interaction.options.getString("keyword");
-		if (keyword === null) {
+	async commandFind(interaction: CommandInteraction)
+	{
+		const keyword = interaction.options.get("keyword")?.value;
+		if (typeof keyword !== 'string') {
 			await interaction.reply("Please specify a keyword.");
 			return;
 		}
@@ -251,7 +251,7 @@ class Emoter extends DatabaseModule {
 			guild: { $in: [GLOBAL_GUILD, guildId] },
 			name: name,
 		}).toArray();
-		
+
 		const globalEmote = cursor.find((doc) => doc.guildId === null);
 		if (globalEmote !== undefined) {
 			return globalEmote;
@@ -265,7 +265,7 @@ class Emoter extends DatabaseModule {
 		return null;
 	}
 
-	async commandAdd(interaction: CommandInteraction) {
+	async commandAdd(interaction: ChatInputCommandInteraction) {
 
 		if (interaction.guildId === null || !(interaction.member instanceof GuildMember)) {
 			await interaction.reply("This command can only be used in a guild.");
@@ -329,7 +329,7 @@ class Emoter extends DatabaseModule {
 		}
 	}
 
-	async commandTest(interaction: CommandInteraction) {
+	async commandTest(interaction: ChatInputCommandInteraction) {
 
 		const emoterGuild = interaction.client.guilds.cache.get(EMOTER_GUILD_ID);
 		if (emoterGuild === undefined) {
@@ -345,9 +345,9 @@ class Emoter extends DatabaseModule {
 			await interaction.reply("Database unavailable");
 		} else {
 			const emotes = db.collection("emoter.emotes3");
-			const cursor = emotes.find({ 
+			const cursor = emotes.find({
 				guild: { $in: [GLOBAL_GUILD, interaction.guildId] },
-				name: keyword 
+				name: keyword
 			});
 			const doc = await cursor.next();
 			if (doc) {
@@ -364,7 +364,7 @@ class Emoter extends DatabaseModule {
 		}
 	}
 
-	async commandDisable(interaction: CommandInteraction) {
+	async commandDisable(interaction: ChatInputCommandInteraction) {
 
 		const app = await interaction.client.application?.fetch();
     if (!app || interaction.user.id !== app.owner?.id) {
@@ -387,11 +387,11 @@ class Emoter extends DatabaseModule {
 		const emotes = db.collection("emoter.emotes3");
 		await emotes.updateOne({ name: keyword },
 			{ $set: { disabled: true } });
-			
+
 		await interaction.reply(`Disabled emote \`$${keyword}\``);
 	}
 
-	async commandEdit(interaction: CommandInteraction) {
+	async commandEdit(interaction: ChatInputCommandInteraction) {
 
 		const emotes = getMongoDatabase()?.collection("emoter.emotes3");
 		if (emotes === undefined) {
@@ -418,7 +418,7 @@ class Emoter extends DatabaseModule {
 				uploadersToSearch.push( interaction.client.user.id);
 			}
 		}
-		
+
 		const result = await emotes.updateOne({
 			name: keyword,
 			uploader: { $in: uploadersToSearch },
@@ -440,11 +440,11 @@ class Emoter extends DatabaseModule {
 				emote.delete();
 			}
 		}
-		
+
 		await interaction.reply(`Edited emote \`${keyword}\``);
 	}
 
-	async commandEmote(interaction: CommandInteraction) {
+	async commandEmote(interaction: ChatInputCommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This command is disabled");

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CommandInteraction, MessageAttachment, MessageEmbed } from 'discord.js';
+import { CommandInteraction, AttachmentBuilder, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
 import { DatabaseModule } from "../module_mgr";
 
 class Composer extends DatabaseModule
@@ -7,7 +7,7 @@ class Composer extends DatabaseModule
 	async compose(style: string, density: string, temp: string)
 	{
 		const url = 'https://hf.space/embed/ai-guru/composer/task/create';
-		
+
 		const resp = axios.post(url, {
 			"music_style": style,
 			"density": density,
@@ -17,7 +17,7 @@ class Composer extends DatabaseModule
 		return resp;
 	}
 
-	async commandCompose(interaction: CommandInteraction)
+	async commandCompose(interaction: ChatInputCommandInteraction)
 	{
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This command is disabled");
@@ -42,7 +42,7 @@ class Composer extends DatabaseModule
 
 			const MAX_ATTEMPTS = 20;
 			let attempts = 0;
-			while (attempts++ < MAX_ATTEMPTS) 
+			while (attempts++ < MAX_ATTEMPTS)
 			{
 				//console.log('Attempting compose ' + attempts);
 				await new Promise(resolve => setTimeout(resolve, 1000));
@@ -60,14 +60,14 @@ class Composer extends DatabaseModule
 			const imgb64 = imgStr.substring(audioStr.indexOf(","));
 
 			const audiobuffer = Buffer.from(audiob64, 'base64');
-			const audioatt = new MessageAttachment(audiobuffer, `${style}_${density}_${temp}.wav`);
+			const audioatt = new AttachmentBuilder(audiobuffer, { name: `${style}_${density}_${temp}.wav` });
 
 			const imgbuffer = Buffer.from(imgb64, 'base64');
-			const imgatt = new MessageAttachment(imgbuffer, `${style}_${density}_${temp}.png`);
+			const imgatt = new AttachmentBuilder(imgbuffer, {name: `${style}_${density}_${temp}.png` });
 
 			await interaction.editReply({ files: [imgatt, audioatt] });
-			
-		} 
+
+		}
 		catch (e) {
 			await interaction.editReply({
 				content: 'There was an error with your request: ' + e

@@ -1,4 +1,4 @@
-import { Client, ClientOptions, Intents } from "discord.js";
+import { Client, ClientOptions, GatewayIntentBits, NewsChannel, Partials, PermissionsBitField, TextChannel } from "discord.js";
 import "dotenv/config";
 import animals from "./modules/animals";
 import { emoter } from "./modules/emoter";
@@ -13,18 +13,15 @@ import weather from "./modules/weather/weather";
 import yeller from "./modules/yeller";
 import markdownUrl from "./modules/markdown-url";
 import registerCommands from "./register_commands";
-import leagueban from "./modules/ban-league";
 import { DatabaseModule, ModuleManager } from "./module_mgr";
 import reminder from "./modules/remindme";
-import markovify from "./modules/markovify";
 import minidalle from "./modules/minidalle";
 import uberduck from "./modules/uberduck";
 import { wordleMgr } from "./modules/wordle";
-import neynayer from "./modules/neynayer";
 import openaiMgr from "./modules/openai";
 import blacklist from "./modules/blacklist";
 import composer from "./modules/composer";
-import { ActivityType } from "discord-api-types";
+import usageStats from "./modules/usagestats";
 
 const token = process.env.NBOT_DISCORD_TOKEN;
 if (token === undefined) {
@@ -39,9 +36,9 @@ class ModuleBot extends Client {
 		super(options);
 
 		this.moduleMgr = new ModuleManager();
+		this.moduleMgr.registerModule(usageStats);
 		this.moduleMgr.registerModule(yeller);
 		this.moduleMgr.registerModule(markdownUrl);
-		this.moduleMgr.registerModule(leagueban);
 		this.moduleMgr.registerModule(wordleMgr);
 		this.moduleMgr.registerModule(weather);
 		this.moduleMgr.registerModule(animals);
@@ -52,7 +49,6 @@ class ModuleBot extends Client {
 		this.moduleMgr.registerModule(permathreader);
 		this.moduleMgr.registerModule(starboard);
 		this.moduleMgr.registerModule(reminder);
-		this.moduleMgr.registerModule(markovify);
 		this.moduleMgr.registerModule(minidalle);
 		this.moduleMgr.registerModule(uberduck);
 		this.moduleMgr.registerModule(openaiMgr);
@@ -63,14 +59,14 @@ class ModuleBot extends Client {
 
 const client = new ModuleBot({
 	intents: [
-		Intents.FLAGS.GUILDS,
-		Intents.FLAGS.GUILD_MESSAGES,
-		Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-		Intents.FLAGS.GUILD_MEMBERS,
-		Intents.FLAGS.GUILD_WEBHOOKS,
-		Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMessageReactions,
+		// GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildWebhooks,
+		GatewayIntentBits.GuildEmojisAndStickers
 	],
-	partials: ["MESSAGE", "REACTION"], // used by starboard on uncached msgs
+	partials: [Partials.Message, Partials.Reaction], // used by starboard on uncached msgs
 	allowedMentions: {},
 });
 
@@ -78,18 +74,6 @@ client.once("ready", async () => {
 	if (client.user == null) {
 		throw new Error("Client user is null");
 	}
-
-	// try {
-	// 	client.user.setPresence({ 
-	// 		activities: [
-	// 			{ name: "My battery is low and it's getting dark", type: `PLAYING` }
-	// 		], 
-	// 		status: 'online' }
-	// 	);
-	// }
-	// catch (e) {
-	// 	console.log(`Failed to set presence: ${e}`);
-	// }
 
 	await initMongoDatabase();
 
@@ -107,24 +91,17 @@ client.once("ready", async () => {
 	permathreader.recoverFromSleep(client);
 	reminder.beginRepeatingTask(client);
 
-	await neynayer.beginTask(client);
-
-	// check every 5 minutes
-	setInterval(function () {
-		leagueban.checkBans(client);
-	}, 300000);
-
 	await registerCommands(client.user.id, token);
 });
 
 
 client.on("interactionCreate", async (interaction) => {
 
-	// if (isBlacklisted(interaction.user.id)) {
-	// 	return;
-	// }
+	if (blacklist.isBlacklisted(interaction.user.id)) {
+		return;
+	}
 
-	if (interaction.isCommand()) {
+	if (interaction.isChatInputCommand()) {
 		switch (interaction.commandName) {
 			case "weather": {
 				weather.commandWeather(interaction);
@@ -162,18 +139,11 @@ client.on("interactionCreate", async (interaction) => {
 				await reminder.commandRemind(interaction);
 				break;
 			}
-			case "mimic": {
-				await markovify.commandMimic(interaction);
+
+			case "stats": {
+				await usageStats.commandStats(interaction);
 				break;
 			}
-			case "mimic_optout": {
-				await markovify.commandOptout(interaction);
-				break;
-			}
-			// case "stats_wordle": {
-			// 	await wordle.commandStats(interaction);
-			// 	break;
-			// }
 
 			case "imagine": {
 				await minidalle.commandCreate(interaction);
@@ -219,11 +189,10 @@ client.on("messageReactionAdd", async (reaction) => {
 	// If an admin reacts to a message of ours with X, delete it
 	if (reaction.emoji.name === "❌" &&
 		reaction.message.author.id === client.user?.id &&
-		reaction.message.member?.permissions.has("ADMINISTRATOR")) {
+		reaction.message.member?.permissions.has(PermissionsBitField.Flags.Administrator)) {
 		await reaction.message.delete();
 		return;
 	}
-
 
 	await starboard.handleReactionUpdate(reaction);
 
@@ -235,9 +204,9 @@ client.on("messageReactionRemove", async (reaction) => {
 
 client.on("messageCreate", async (message) => {
 
-	// if (isBlacklisted(message.author.id)) {
-	// 	return;
-	// }
+	if (blacklist.isBlacklisted(message.author.id)) {
+		return;
+	}
 
 	if (message.author.bot) {
 		await adblock.handleMessage(message);
@@ -250,14 +219,12 @@ client.on("messageCreate", async (message) => {
 		await markdownUrl.handleMessage(message);
 		await wordleMgr.handleMessage(message);
 	}
-
-	if (message.content === '.naystats') {
-		await neynayer.commandPfpCount(message);
-	}
 });
 
 client.on("webhookUpdate", async (channel) => {
-	await webhookManager.handleWebhookUpdate(channel);
+	if (channel instanceof NewsChannel || channel instanceof TextChannel) {
+		await webhookManager.handleWebhookUpdate(channel);
+	}
 });
 
 client.on("threadUpdate", async (oldThread, newThread) => {

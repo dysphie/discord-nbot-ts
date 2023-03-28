@@ -1,6 +1,6 @@
-import { APIInteractionGuildMember } from "discord-api-types";
+import { APIInteractionGuildMember } from "discord-api-types/v10";
 import {
-	CommandInteraction,
+	ChatInputCommandInteraction,
 	ColorResolvable,
 	GuildMemberRoleManager,
 	GuildMember,
@@ -14,7 +14,7 @@ import { DatabaseModule } from "../module_mgr";
 
 class Namecolor extends DatabaseModule {
 
-	async commandNamecolor(interaction: CommandInteraction) {
+	async commandNamecolor(interaction: ChatInputCommandInteraction) {
 
 		if (!this.isEnabled(interaction.guildId)) {
 			await interaction.reply("This command is disabled");
@@ -43,7 +43,7 @@ class Namecolor extends DatabaseModule {
 			this.removeOldColors(interaction.member, roles);
 			await interaction.reply("Removed custom name color");
 			return;
-		} 
+		}
 		else if (hex === "auto") {
 
 			const user = interaction.member.user;
@@ -64,8 +64,8 @@ class Namecolor extends DatabaseModule {
 				return;
 			}
 			hex = palette.Vibrant.hex;
-		} 
-		else if (hex === 'random') {		
+		}
+		else if (hex === 'random') {
 			const letters = '0123456789ABCDEF';
 			let color = '#';
 			for (let i = 0; i < 6; i++) {
@@ -103,7 +103,7 @@ class Namecolor extends DatabaseModule {
 			position: 0,
 			reason: "Requested name color",
 		});
-		
+
 
 		await roles.add(newRole);
 		await interaction.reply(
